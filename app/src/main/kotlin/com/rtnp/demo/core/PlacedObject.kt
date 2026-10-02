@@ -163,9 +163,18 @@ class PlacedObject {
     @JvmField var uniqueId: Long = 0L
 
     // ★ 工厂槽字段（使用组合体模式）
+    @JvmField var factorySlots: Int = 0
     @JvmField var factorySlotConfigs: MutableList<FactorySlotConfig> = mutableListOf()
     @JvmField var factoryCooldownBars: MutableList<ProgressBarTool?> = mutableListOf()
     @JvmField var allowFactoryChange: Boolean = true
+    
+    // ★ 立场槽字段
+    @JvmField var shieldSlots: Int = 0
+    @JvmField var shieldSlotConfigs: MutableList<com.rtnp.demo.shield.ShieldSlotConfig> = mutableListOf()
+    @JvmField var allowShieldChange: Boolean = true
+    
+    
+    @JvmField var dynamicPanelComponents: MutableList<com.rtnp.demo.ui.panel.data.DynamicProgressBarComponent> = mutableListOf()
 
     companion object {
         private var nextId: Long = 1L

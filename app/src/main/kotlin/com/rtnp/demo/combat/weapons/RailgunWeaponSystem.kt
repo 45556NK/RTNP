@@ -1,9 +1,8 @@
-// app/src/main/kotlin/com/rtnp/demo/combat/weapons/RailgunWeaponSystem.kt
 package com.rtnp.demo.combat.weapons
 
 import android.graphics.Color
 import android.opengl.GLES30
-import com.rtnp.demo.Bullet
+import com.rtnp.demo.combat.Bullet
 import com.rtnp.demo.UnitSystem
 import com.rtnp.demo.combat.WeaponConstants
 import com.rtnp.demo.core.PlacedObject
@@ -73,7 +72,10 @@ class RailgunWeaponSystem : WeaponSystem {
             ws.damage.toInt(),
             attacker.faction,
             range,
-            attacker.worldX, attacker.worldY
+            attacker.worldX, attacker.worldY,
+            attacker,
+            ws,
+            com.rtnp.demo.combat.DamageType.RAILGUN
         ))
         WeaponButtonTool.setCooldownConfig(ws, Color.argb(89, 255, 130, 130), CooldownRenderTool.Direction.BOTTOM_UP)
 

@@ -1,4 +1,3 @@
-// app/src/main/kotlin/com/rtnp/demo/combat/ExplosionDamageTool.kt
 package com.rtnp.demo.combat
 
 import android.graphics.Canvas
@@ -31,6 +30,7 @@ object ExplosionDamageTool {
         suppressionUnits.remove(unit)
     }
 
+    @JvmOverloads
     fun applyExplosion(
         host: UnitSystem,
         centerX: Float,
@@ -38,7 +38,8 @@ object ExplosionDamageTool {
         range: Float,
         damage: Float,
         sourceFaction: Int,
-        effectId: String? = null
+        effectId: String? = null,
+        attacker: PlacedObject? = null
     ) {
         for (unit in host.placedObjects.toList()) {
             if (unit.faction == sourceFaction) continue
@@ -47,11 +48,9 @@ object ExplosionDamageTool {
             val dx = unit.worldX - centerX
             val dy = unit.worldY - centerY
             if (sqrt((dx * dx + dy * dy).toDouble()).toFloat() <= range) {
-                host.applyDamage(unit, damage)
+                host.applyDamage(unit, attacker, null, com.rtnp.demo.combat.DamageType.EXPLOSION, damage)
             }
         }
-
-        // TODO: 新 GPU 特效系统 - 爆炸特效
     }
 
     fun applySuppression(
@@ -67,11 +66,9 @@ object ExplosionDamageTool {
             val dx = t.worldX - unit.worldX
             val dy = t.worldY - unit.worldY
             if (sqrt((dx * dx + dy * dy).toDouble()).toFloat() <= unit.suppressionRange) {
-                host.applyDamage(t, unit.suppressionDamage.toFloat())
+                host.applyDamage(t, unit, null, com.rtnp.demo.combat.DamageType.EXPLOSION, unit.suppressionDamage.toFloat())
             }
         }
-
-        // TODO: 新 GPU 特效系统 - 压制特效
     }
 
     fun update(host: UnitSystem, deltaTime: Float) {

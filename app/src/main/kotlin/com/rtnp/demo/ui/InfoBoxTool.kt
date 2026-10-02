@@ -18,6 +18,7 @@ import com.rtnp.demo.image.ImageManager
  * 按钮支持按压缩放动画，并显示名称标签动画
  * 按钮贴图缩放由外部通过 iconScale 参数决定
  * 信息框底色可在创建时由外部传入
+ * 文字颜色可在设置时由外部传入
  */
 object InfoBoxTool {
 
@@ -58,6 +59,7 @@ object InfoBoxTool {
     private data class InfoBoxData(
         val rect: RectF,
         var text: String = "",
+        var textColor: Int = Color.WHITE,   // ★ 新增：文字颜色
         var visible: Boolean = true,
         val bgColor: Int = Color.argb(204, 50, 50, 50), // 默认浅灰色，20%透明度
         val buttons: MutableList<InfoButtonData> = mutableListOf()
@@ -130,9 +132,15 @@ object InfoBoxTool {
         tasks.remove(id)
     }
 
+    /**
+     * 设置文本
+     * @param textColor 文字颜色，默认白色
+     */
     @JvmStatic
-    fun setText(id: Int, text: String) {
+    @JvmOverloads
+    fun setText(id: Int, text: String, textColor: Int = Color.WHITE) {
         tasks[id]?.text = text
+        tasks[id]?.textColor = textColor
     }
 
     @JvmStatic
@@ -256,12 +264,14 @@ object InfoBoxTool {
             if (!data.visible) continue
             val rect = data.rect
 
-            // ★ 使用信息框自己的背景色
+            // 使用信息框自己的背景色
             bgPaint.color = data.bgColor
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, bgPaint)
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, borderPaint)
 
             if (data.text.isNotEmpty()) {
+                // ★ 使用信息框自己的文字颜色
+                textPaint.color = data.textColor
                 val lines = data.text.split("\n")
                 var y = rect.top + padding + textSize
                 for (line in lines) {

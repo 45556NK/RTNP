@@ -93,6 +93,8 @@ object RightPanel {
         if (unit != null) {
             StrategyButtonTool.updateCooldowns(buttons, unit)
             StrategyButtonTool.updateEnergy(buttons, unit)
+            FactoryButtonTool.updateFactoryButtonData(buttons, unit)
+            ShieldButtonTool.updateShieldButtonData(buttons, unit)   // ★ 新增
         }
 
         PanelAnimTool.draw(canvas, components, vw, vh) { c, comps ->

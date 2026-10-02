@@ -1,6 +1,5 @@
 package com.rtnp.demo.combat
 
-import com.rtnp.demo.Bullet
 import com.rtnp.demo.UnitSystem
 import com.rtnp.demo.core.PlacedObject
 
@@ -32,7 +31,7 @@ object MissileLoop {
             for (target in targetCopy) {
                 if (target.faction == b.faction) continue
                 if (isBulletHitTarget(b, prevX, prevY, target)) {
-                    host.applyDamage(target, b.damage.toFloat())
+                    host.applyDamage(target, b.attacker, b.weapon, b.damageType, b.damage.toFloat())
                     hit = true
                     break
                 }
@@ -70,7 +69,6 @@ object MissileLoop {
         val dx = px - o.worldX
         val dy = py - o.worldY
 
-        // ★ 贴图单位在渲染时额外旋转了90度，碰撞检测需要同步
         val angleOffset = if (o.textureBitmap != null) 90f else 0f
         val angleRad = Math.toRadians((-o.heading + angleOffset).toDouble())
         val cos = Math.cos(angleRad).toFloat()

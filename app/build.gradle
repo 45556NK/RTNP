@@ -1,18 +1,27 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'   // 只保留这一个 Kotlin 插件
+    id 'org.jetbrains.kotlin.android'
 }
 
+// ---- 读取版本信息（UTF-8）----
+def versionPropsFile = rootProject.file('version.properties')
+def versionProps = new Properties()
+versionProps.load(new InputStreamReader(new FileInputStream(versionPropsFile), "UTF-8"))
+
+def versionNamePrefix = versionProps['versionNamePrefix']
+def currentBuildCount = versionProps['buildCount'].toInteger()
+def currentVersionCode = versionProps['versionCode'].toInteger()
+
 android {
-    namespace 'com.rtnp.demo'           // 与 applicationId 保持一致
+    namespace 'com.rtnp.demo'
     compileSdk 33
 
     defaultConfig {
         applicationId 'com.rtnp.demo'
         minSdk 18
         targetSdk 33
-        versionCode 40
-        versionName "α0.31.1"
+        versionCode currentVersionCode
+        versionName "${versionNamePrefix}-${currentBuildCount}"
     }
 
     compileOptions {
@@ -22,17 +31,30 @@ android {
     kotlinOptions {
         jvmTarget = '11'
     }
-
-    // 如果您的项目中有 Java 源码，请保留 sourceSets 配置（默认即可）
 }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'jp.co.cyberagent.android:gpuimage:2.1.0'
-    // 添加 Kotlin 标准库（必须）
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'org.jbox2d:jbox2d-library:2.2.1.1'
-    // 您原先没有其他第三方依赖，如有请按需添加
     implementation 'com.caverock:androidsvg:1.4'
+}
+
+// ---- 构建后自动累加 buildCount 和 versionCode（UTF-8 写回）----
+tasks.register('bumpVersion') {
+    doLast {
+        versionProps['buildCount'] = (currentBuildCount + 1).toString()
+        versionProps['versionCode'] = (currentVersionCode + 1).toString()
+        versionProps.store(
+            new OutputStreamWriter(new FileOutputStream(versionPropsFile), "UTF-8"),
+            "Auto-incremented by build"
+        )
+        println "buildCount -> ${currentBuildCount + 1}, versionCode -> ${currentVersionCode + 1}"
+    }
+}
+
+tasks.matching { it.name.startsWith('assemble') }.configureEach {
+    finalizedBy 'bumpVersion'
 }

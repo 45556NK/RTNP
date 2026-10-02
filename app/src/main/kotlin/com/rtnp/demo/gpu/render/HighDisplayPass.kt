@@ -4,7 +4,7 @@ import com.rtnp.demo.UnitSystem
 import com.rtnp.demo.core.PlacedObject
 import com.rtnp.demo.gpu.CameraMatrix
 import com.rtnp.demo.gpu.render.tools.*
-import com.rtnp.demo.logger.Logger
+import com.rtnp.demo.shield.ShieldManager
 
 class HighDisplayPass {
 
@@ -17,6 +17,9 @@ class HighDisplayPass {
     private val explosionRangeDisplaySystem = ExplosionRangeDisplaySystem
     private val suppressionRangeDisplaySystem = SuppressionRangeDisplaySystem
 
+    // ★ 立场渲染系统
+    private val shieldRenderSystem = ShieldRenderSystem
+
     fun init() {
         movePathRenderer.init()
         healthIndicatorSystem.init()
@@ -26,10 +29,13 @@ class HighDisplayPass {
         tileSelectorRenderSystem.init()
         explosionRangeDisplaySystem.init()
         suppressionRangeDisplaySystem.init()
+
+        // ★ 初始化立场渲染
+        shieldRenderSystem.init()
     }
 
     fun draw(units: List<PlacedObject>, unitSystem: UnitSystem?, cameraMatrix: CameraMatrix, zoom: Float) {
-    
+
         val safeUnits = units.toList()
         // 移动路径
         movePathRenderer.build(units)
@@ -61,5 +67,12 @@ class HighDisplayPass {
 
         // 压制范围显示
         suppressionRangeDisplaySystem.render(cameraMatrix)
+
+        // ★ 立场渲染
+        shieldRenderSystem.clearCommands()
+        if (unitSystem != null) {
+            ShieldManager.renderGpuShields(safeUnits, shieldRenderSystem)
+        }
+        shieldRenderSystem.render(cameraMatrix)
     }
 }

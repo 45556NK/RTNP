@@ -29,9 +29,15 @@ object BaseUnitTemplate {
 
         ButtonBindingTool.addToComponents(components,
             ButtonBindingTool.createWeaponButtons(unit, vw, context))
+            
+        ButtonBindingTool.addToComponents(components,
+            ButtonBindingTool.createShieldButtons(unit, vw, context))
 
         ButtonBindingTool.addToComponents(components,
             ButtonBindingTool.createStrategyButtons(unit, vw, context))
+            
+        ButtonBindingTool.addToComponents(components,
+            ButtonBindingTool.createFactoryButtons(unit, vw, context))
 
         return components
     }

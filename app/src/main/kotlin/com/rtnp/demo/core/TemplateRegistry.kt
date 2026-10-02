@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import com.rtnp.demo.core.PlacedObject
 import com.rtnp.demo.movement.ModuleManager
+import com.rtnp.demo.shield.ShieldSlotConfig
 import com.rtnp.demo.ui.InventoryPanel
 import com.rtnp.demo.ai.AiManager
 import com.rtnp.demo.factory.FactorySlotConfig
@@ -129,6 +130,10 @@ object TemplateRegistry {
             physicsMass = 6f
             refVolumeShape = "circle"
             refVolumeRadius = 50f  // 根据需要设置
+            shieldSlots = 1
+            shieldSlotConfigs.add(ShieldSlotConfig().apply {
+                shieldId = "anti_explosion_shield"
+            })
             aiIds.add("zone_defense")
             weaponSlots.add(ModuleManager.createSlotFromTemplate("laser_default") ?: PlacedObject.WeaponSlot())
         })
@@ -164,14 +169,15 @@ object TemplateRegistry {
             refVolumeShape = "circle"
             refVolumeRadius = 80f  // 根据需要设置
             buildDockRadius = 90f
-            /*factorySlotConfigs.add(FactorySlotConfig().apply {
+            factorySlots = 3
+            factorySlotConfigs.add(FactorySlotConfig().apply {
                 factoryId = "repair_factory"
             })
             factorySlotConfigs.add(FactorySlotConfig().apply {
                 factoryId = "shipyard"
                 // 可选覆盖参数
                 params.put("productionRate", 150f)
-            })*/
+            })
         })
 
         addTemplate(InventoryItem().apply {

@@ -67,11 +67,8 @@ object PanelLogic {
                 is StorageBarComponent -> isProgressBarHit(comp, panelRect, x, y)
                 is BuildProgressComponent -> isProgressBarHit(comp, panelRect, x, y)
                 is BuildReserveComponent -> isProgressBarHit(comp, panelRect, x, y)
-                is InteractiveButtonComponent -> false
-                is PanelComponent.Text -> false
-                is PanelComponent.Image -> false
-                is PanelComponent.Button -> false
-                is PanelComponent.Spacer -> false
+                is DynamicProgressBarComponent -> isProgressBarHit(comp, panelRect, x, y)
+                else -> false
             }
             when (action) {
                 0 -> {
@@ -83,7 +80,7 @@ object PanelLogic {
                             is StorageBarComponent -> comp.isPressed = !comp.isPressed
                             is BuildProgressComponent -> comp.isPressed = !comp.isPressed
                             is BuildReserveComponent -> comp.isPressed = !comp.isPressed
-                            is PanelComponent.Spacer -> false
+                            is DynamicProgressBarComponent -> comp.isPressed = !comp.isPressed
                             else -> {}
                         }
                         handled = true
@@ -95,7 +92,7 @@ object PanelLogic {
                             is StorageBarComponent -> comp.isPressed = false
                             is BuildProgressComponent -> comp.isPressed = false
                             is BuildReserveComponent -> comp.isPressed = false
-                            is PanelComponent.Spacer -> false
+                            is DynamicProgressBarComponent -> comp.isPressed = false
                             else -> {}
                         }
                     }
@@ -109,7 +106,7 @@ object PanelLogic {
                         is StorageBarComponent -> comp.isPressed = false
                         is BuildProgressComponent -> comp.isPressed = false
                         is BuildReserveComponent -> comp.isPressed = false
-                        is PanelComponent.Spacer -> false
+                        is DynamicProgressBarComponent -> comp.isPressed = false
                         else -> {}
                     }
                 }
@@ -160,6 +157,28 @@ object PanelLogic {
         components.clear()
         val template = state.template ?: inferTemplate(state)
         val templateComponents = TemplateSelector.selectByTemplate(template, state, vw, context)
-        components.addAll(templateComponents)
+
+        val unit = state.lockedUnits.firstOrNull()
+        if (unit == null) {
+            components.addAll(templateComponents)
+            return
+        }
+
+        val dynamicComponents = unit.dynamicPanelComponents
+
+        for (comp in templateComponents) {
+            components.add(comp)
+            if (comp is PanelComponent.Placeholder) {
+                // 找到该占位符下所有动态组件
+                val matches = dynamicComponents.filter { it.placeholderId == comp.id }
+                if (matches.isNotEmpty()) {
+                    // 后进来的靠近占位符 → 逆序插入
+                    for (i in matches.indices.reversed()) {
+                        components.add(matches[i])
+                    }
+                }
+            }
+        }
     }
+
 }

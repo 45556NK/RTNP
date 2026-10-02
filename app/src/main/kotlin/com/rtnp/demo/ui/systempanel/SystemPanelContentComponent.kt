@@ -1,21 +1,20 @@
 package com.rtnp.demo.ui.systempanel
 
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import com.rtnp.demo.core.PlacedObject
-import com.rtnp.demo.image.ImageManager
-import com.rtnp.demo.movement.weapon.WeaponManager
-import com.rtnp.demo.strategy.StrategyManager
 import com.rtnp.demo.ui.FloatingWindowTool
 import com.rtnp.demo.ui.HexButton
 import com.rtnp.demo.ui.HexGridUtil
-import com.rtnp.demo.ui.InfoBoxTool
 import com.rtnp.demo.ui.WarningMessage
-import kotlin.math.sqrt
+import com.rtnp.demo.ui.systempanel.tools.SystemPanelEntriesBuilder
+import com.rtnp.demo.ui.systempanel.tools.SystemPanelHexRenderer
+import com.rtnp.demo.ui.systempanel.tools.SystemPanelInfoBox
+import com.rtnp.demo.ui.systempanel.tools.SystemPanelSlotEntry
 import kotlin.math.max
+import kotlin.math.sqrt
 
 class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
 
@@ -24,7 +23,7 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
     var screenHeight: Int = 0
 
     private val hexButtons = mutableListOf<HexButton>()
-    private val hexButtonData = mutableListOf<HexButtonData>()
+    private val entries = mutableListOf<SystemPanelSlotEntry>()
     private var backButton: HexButton? = null
     private var pressedButton: HexButton? = null
 
@@ -40,20 +39,7 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
     private var isMultiTouchActive = false
 
     private var selectedSlotIndex = -1
-    private var infoBoxId = -1
-
-    private var changeButtonCenterX = 0f
-    private var changeButtonCenterY = 0f
-
-    // ★ 无槽位单位标志
     private var isEmptyUnit = false
-
-    private data class HexButtonData(
-        val type: String,
-        val index: Int,
-        val label: String,
-        val bitmap: Bitmap?
-    )
 
     override fun draw(canvas: Canvas, windowRect: RectF) {
         buildButtonsIfNeeded(windowRect)
@@ -65,22 +51,13 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
         canvas.drawText(titleText, windowRect.centerX(), titleY, titlePaint)
 
         for (i in hexButtons.indices) {
-            val btn = hexButtons[i]
-            btn.draw(canvas)
-            val data = hexButtonData.getOrNull(i) ?: continue
-            data.bitmap?.let { bmp ->
-                val half = btn.size * 1.6f * 0.9f / 2f
-                val left = btn.centerX - half
-                val top = btn.centerY - half
-                canvas.drawBitmap(bmp, null, RectF(left, top, left + half * 2, top + half * 2), null)
-            }
+            SystemPanelHexRenderer.drawHexButton(canvas, hexButtons[i], entries.getOrNull(i)?.bitmap)
         }
         backButton?.draw(canvas)
     }
 
     override fun onTouchDown(x: Float, y: Float) {
         if (isEmptyUnit) {
-            // ★ 无槽位单位：整个悬浮窗都可点击，直接关闭
             closeInfoBox()
             SystemPanelEntry.hide()
             return
@@ -90,7 +67,6 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
         val screenY = y + lastWindowRect.top
         pressedButton = null
 
-        // 优先检测返回按钮
         backButton?.let {
             if (it.isPointInside(screenX, screenY)) {
                 it.onTouchDown()
@@ -134,7 +110,7 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
                     }
                     else -> {
                         val index = hexButtons.indexOf(btn)
-                        if (index >= 0 && index < hexButtonData.size) {
+                        if (index >= 0 && index < entries.size) {
                             selectSlot(index)
                         }
                     }
@@ -187,113 +163,66 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
     }
 
     private fun updateInfoBox() {
-        closeInfoBox()
-        if (selectedSlotIndex < 0 || selectedSlotIndex >= hexButtonData.size) return
-
-        val data = hexButtonData[selectedSlotIndex]
-        val title = SystemPanelConstants.getText("change_component")
-        val name = data.label
-
+        val entry = entries.getOrNull(selectedSlotIndex) ?: return
         val windowRect = FloatingWindowTool.getWindowRect()
-        val gap = windowRect.height() / 20f
-        val infoWidth = windowRect.width() - gap * 2f
-        val infoHeight = windowRect.height() / 4f
 
-        val infoLeft = windowRect.left + gap
-        val infoTop = windowRect.bottom - infoHeight - gap
-
-        infoBoxId = InfoBoxTool.show(infoLeft, infoTop, infoWidth, infoHeight)
-        InfoBoxTool.setText(infoBoxId, "$title\n$name")
-
-        val buttonDiameter = infoHeight / 3f
-        val buttonGap = infoHeight / 20f
-        val totalButtonsWidth = buttonDiameter * 2 + buttonGap
-        val buttonsStartX = infoLeft + (infoWidth - totalButtonsWidth) / 2f
-        val buttonsBottomY = infoTop + infoHeight - gap
-        val buttonTopY = buttonsBottomY - buttonDiameter
-
-        InfoBoxTool.addButton(
-            taskId = infoBoxId,
-            x = buttonsStartX - infoLeft,
-            y = buttonTopY - infoTop,
-            size = buttonDiameter,
-            bgColor = Color.rgb(255, 182, 193),
-            label = "取消",
-            texturePath = "images/ui/panel_cancel_btn.png",
-            iconScale = 0.8f
-        )
-
-        val confirmX = buttonsStartX + buttonDiameter + buttonGap
-        InfoBoxTool.addButton(
-            taskId = infoBoxId,
-            x = confirmX - infoLeft,
-            y = buttonTopY - infoTop,
-            size = buttonDiameter,
-            bgColor = Color.rgb(173, 216, 230),
-            label = "更改",
-            texturePath = "images/ui/panel_change_btn.png",
-            iconScale = 0.8f
-        )
-
-        changeButtonCenterX = infoLeft + (confirmX - infoLeft) + buttonDiameter / 2f
-        changeButtonCenterY = infoTop + (buttonTopY - infoTop) + buttonDiameter / 2f
-
-        InfoBoxTool.onButtonClick = { taskId, buttonIndex ->
-            if (taskId == infoBoxId) {
-                when (buttonIndex) {
-                    0 -> resetToInitial()
-                    1 -> {
-                        val selectedData = hexButtonData.getOrNull(selectedSlotIndex)
-                        if (selectedData != null) {
-                            val us = SystemPanelLogic.getUnitSystem()
-                            val u = unit
-                            if (us != null && u != null) {
-                                val allowed = when (selectedData.type) {
-                                    "weapon" -> u.allowWeaponChange
-                                    "strategy" -> u.allowStrategyChange
-                                    else -> true
-                                }
-                                if (allowed) {
-                                    val slotIdx = selectedData.index
-                                    closeInfoBox()
-                                    SystemPanelEntry.hide()
-                                    when (selectedData.type) {
-                                        "weapon" -> WeaponChangeController.show(
-                                            unitSystem = us,
-                                            slotIndex = slotIdx,
-                                            startX = changeButtonCenterX,
-                                            startY = changeButtonCenterY,
-                                            onFinished = {
-                                                SystemPanelEntry.show(changeButtonCenterX, changeButtonCenterY, us)
-                                            }
-                                        )
-                                        "strategy" -> StrategyChangeController.show(
-                                            unitSystem = us,
-                                            slotIndex = slotIdx,
-                                            startX = changeButtonCenterX,
-                                            startY = changeButtonCenterY,
-                                            onFinished = {
-                                                SystemPanelEntry.show(changeButtonCenterX, changeButtonCenterY, us)
-                                            }
-                                        )
-                                    }
-                                } else {
-                                    WarningMessage.show("目标槽位已被固定！")
-                                }
-                            }
-                        }
-                    }
-                }
+        SystemPanelInfoBox.show(entry, windowRect, object : SystemPanelInfoBox.OnActionListener {
+            override fun onCancel() {
+                resetToInitial()
             }
+
+            override fun onConfirm(buttonCenterX: Float, buttonCenterY: Float) {
+                handleConfirm(entry, buttonCenterX, buttonCenterY)
+            }
+        })
+    }
+
+    private fun handleConfirm(entry: SystemPanelSlotEntry, centerX: Float, centerY: Float) {
+        val us = SystemPanelLogic.getUnitSystem() ?: return
+        val u = unit ?: return
+
+        val allowed = when (entry.type) {
+            "weapon" -> u.allowWeaponChange
+            "strategy" -> u.allowStrategyChange
+            "shield" -> u.allowShieldChange
+            else -> true
+        }
+
+        if (!allowed) {
+            WarningMessage.show("目标槽位已被固定！")
+            return
+        }
+
+        SystemPanelInfoBox.hide()
+        SystemPanelEntry.hide()
+
+        when (entry.type) {
+            "weapon" -> WeaponChangeController.show(
+                unitSystem = us,
+                slotIndex = entry.index,
+                startX = centerX,
+                startY = centerY,
+                onFinished = { SystemPanelEntry.show(centerX, centerY, us) }
+            )
+            "strategy" -> StrategyChangeController.show(
+                unitSystem = us,
+                slotIndex = entry.index,
+                startX = centerX,
+                startY = centerY,
+                onFinished = { SystemPanelEntry.show(centerX, centerY, us) }
+            )
+            "shield" -> ShieldChangeController.show(
+                unitSystem = us,
+                slotIndex = entry.index,
+                startX = centerX,
+                startY = centerY,
+                onFinished = { SystemPanelEntry.show(centerX, centerY, us) }
+            )
         }
     }
 
     private fun closeInfoBox() {
-        if (infoBoxId != -1) {
-            InfoBoxTool.hide(infoBoxId)
-            infoBoxId = -1
-            InfoBoxTool.onButtonClick = null
-        }
+        SystemPanelInfoBox.hide()
     }
 
     private fun distance(x1: Float, y1: Float, x2: Float, y2: Float): Float {
@@ -313,38 +242,14 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
         lastWindowRect.set(windowRect)
 
         hexButtons.clear()
-        hexButtonData.clear()
+        entries.clear()
         backButton = null
         isEmptyUnit = false
 
         val u = unit ?: return
         val context = FloatingWindowTool.getContext() ?: return
 
-        val entries = mutableListOf<HexButtonData>()
-
-        u.weaponSlots.forEachIndexed { index, slot ->
-            val template = slot.templateId?.let { WeaponManager.getTemplate(it) }
-            val label = if (slot.active) {
-                template?.displayName ?: slot.type
-            } else {
-                SystemPanelConstants.getText("empty_weapon_slot")
-            }
-            val bitmap = template?.iconPath?.let { loadIcon(it, context) }
-            entries.add(HexButtonData("weapon", index, label, bitmap))
-        }
-
-        val strategyIds = u.strategyIds
-        for (i in 0 until u.strategySlots) {
-            val sid = strategyIds.getOrNull(i) ?: ""
-            val template = if (sid.isNotEmpty()) StrategyManager.getTemplate(sid) else null
-            val label = if (sid.isEmpty()) {
-                SystemPanelConstants.getText("empty_strategy_slot")
-            } else {
-                template?.displayName ?: sid
-            }
-            val bitmap = template?.iconPath?.let { loadIcon(it, context) }
-            entries.add(HexButtonData("strategy", i, label, bitmap))
-        }
+        entries.addAll(SystemPanelEntriesBuilder.build(u, context))
 
         val hexSize = maxOf(SystemPanelConstants.getHexSize(screenWidth), windowRect.width() / 12f) * baseScale
         val fontSize = maxOf(SystemPanelConstants.getSmallFontSize(screenHeight), 24f) * baseScale
@@ -352,17 +257,7 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
 
         if (entries.isEmpty()) {
             isEmptyUnit = true
-            backButton = HexButton(
-                windowRect.centerX(), windowRect.centerY(), hexSize,
-                SystemPanelConstants.getText("btn_back")
-            ).apply {
-                fillColor = Color.rgb(255, 165, 0)
-                strokeColor = Color.WHITE
-                pressedStrokeColor = Color.YELLOW
-                textColor = Color.BLACK
-                this.fontSize = fontSize
-                buildPaths()
-            }
+            backButton = buildBackButton(windowRect.centerX(), windowRect.centerY(), hexSize, fontSize)
             return
         }
 
@@ -382,10 +277,27 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
             }
         }
 
-        backButton = HexButton(
-            coords[0][0], coords[0][1], hexSize,
-            SystemPanelConstants.getText("btn_back")
-        ).apply {
+        backButton = buildBackButton(coords[0][0], coords[0][1], hexSize, fontSize)
+
+        for (i in entries.indices) {
+            val entry = entries[i]
+            val coord = coords[i + 1]
+            val btn = HexButton(
+                coord[0], coord[1], hexSize,
+                if (entry.bitmap == null) entry.label else ""
+            )
+            btn.fillColor = SystemPanelHexRenderer.getFillColor(entry.type)
+            btn.strokeColor = Color.WHITE
+            btn.pressedStrokeColor = Color.YELLOW
+            btn.textColor = Color.BLACK
+            btn.fontSize = fontSize
+            btn.buildPaths()
+            hexButtons.add(btn)
+        }
+    }
+
+    private fun buildBackButton(cx: Float, cy: Float, hexSize: Float, fontSize: Float): HexButton {
+        return HexButton(cx, cy, hexSize, SystemPanelConstants.getText("btn_back")).apply {
             fillColor = Color.rgb(255, 165, 0)
             strokeColor = Color.WHITE
             pressedStrokeColor = Color.YELLOW
@@ -393,26 +305,5 @@ class SystemPanelContentComponent : FloatingWindowTool.FloatingWindowComponent {
             this.fontSize = fontSize
             buildPaths()
         }
-
-        for (i in entries.indices) {
-            val data = entries[i]
-            val coord = coords[i + 1]
-            val btn = HexButton(
-                coord[0], coord[1], hexSize,
-                if (data.bitmap == null) data.label else ""
-            )
-            btn.fillColor = if (data.type == "weapon") Color.rgb(255, 130, 130) else Color.rgb(190, 160, 255)
-            btn.strokeColor = Color.WHITE
-            btn.pressedStrokeColor = Color.YELLOW
-            btn.textColor = Color.BLACK
-            btn.fontSize = fontSize
-            btn.buildPaths()
-            hexButtons.add(btn)
-            hexButtonData.add(data)
-        }
-    }
-
-    private fun loadIcon(iconPath: String, context: android.content.Context): Bitmap? {
-        return ImageManager.getInstance(context).getBitmap(iconPath)
     }
 }

@@ -3,10 +3,11 @@ package com.rtnp.demo.factory
 import android.content.Context
 import com.rtnp.demo.UnitSystem
 import com.rtnp.demo.core.PlacedObject
+import com.rtnp.demo.logger.Logger
 
 /**
  * 工厂槽管理器（单例）。
- * 负责注册模板、更新工厂槽逻辑、处理点击。
+ * 负责注册模板、更新工厂槽逻辑、处理点击、更换槽位。
  */
 object FactoryManager {
 
@@ -18,8 +19,10 @@ object FactoryManager {
     fun init(context: Context, unitSystem: UnitSystem) {
         tools = FactoryTools(unitSystem)
         if (!templatesLoaded) {
+            Logger.d("FactoryManager", "开始注册工厂模板")
             FactoryTemplateRegistration.registerFactoryTemplates()
             templatesLoaded = true
+            Logger.d("FactoryManager", "工厂模板注册完成，共 ${templates.size} 个")
         }
     }
 
@@ -43,64 +46,26 @@ object FactoryManager {
     fun getAllIds(): Set<String> = templates.keys
 
     /**
-     * 创建槽位参数：先填充模板默认值，再用外部传入值覆盖
-     */
-    @JvmStatic
-    fun createSlotData(factoryId: String, overrideData: FactorySlotData? = null): FactorySlotData {
-        val data = FactorySlotData()
-        templates[factoryId]?.defaultParams?.forEach { (key, value) ->
-            data.put(key, value)
-        }
-        overrideData?.getAll()?.forEach { (key, value) ->
-            data.put(key, value)
-        }
-        return data
-    }
-
-    /**
-     * 每帧更新所有工厂槽
+     * 每帧更新所有工厂槽（传入 slotIndex 供模板设置进度条）
      */
     @JvmStatic
     fun updateFactories(unit: PlacedObject, deltaTime: Float) {
         val t = tools ?: return
-
         for (i in unit.factorySlotConfigs.indices) {
             val config = unit.factorySlotConfigs[i]
+            if (config.factoryId.isEmpty()) continue
             val template = templates[config.factoryId] ?: continue
-
-            template.onUpdate(unit, deltaTime, t, config.params)
-
-            if (template.cooldownMode == com.rtnp.demo.strategy.CooldownMode.CLICK && template.cooldown > 0f) {
-                val bar = unit.getOrCreateFactoryCooldownBar(i, template.cooldown)
-                if (!bar.isFinished) {
-                    bar.addProgress(deltaTime / bar.totalDuration)
-                }
-            }
+            template.onUpdate(unit, i, deltaTime, t, config.params)
         }
     }
 
-    /**
-     * 玩家点击工厂槽
-     */
     @JvmStatic
     fun onClickFactory(unit: PlacedObject, slotIndex: Int) {
         val t = tools ?: return
         if (slotIndex < 0 || slotIndex >= unit.factorySlotConfigs.size) return
-
         val config = unit.factorySlotConfigs[slotIndex]
         val template = templates[config.factoryId] ?: return
-
-        if (template.cooldown > 0f && slotIndex < unit.factoryCooldownBars.size) {
-            val bar = unit.factoryCooldownBars[slotIndex]
-            if (bar != null && !bar.isFinished) return
-        }
-
-        if (template.cooldownMode == com.rtnp.demo.strategy.CooldownMode.CLICK && template.cooldown > 0f) {
-            val bar = unit.getOrCreateFactoryCooldownBar(slotIndex, template.cooldown)
-            bar.reset()
-        }
-
-        template.onClicked(unit, t, slotIndex, config.params)
+        template.onClicked(unit, slotIndex, t, config.params)
     }
 
     /**
@@ -119,5 +84,38 @@ object FactoryManager {
     fun getSlotData(unit: PlacedObject, slotIndex: Int): FactorySlotData? {
         if (slotIndex < 0 || slotIndex >= unit.factorySlotConfigs.size) return null
         return unit.factorySlotConfigs[slotIndex].params
+    }
+
+    /**
+     * ★ 更换指定槽位的工厂
+     * 会将槽位重置为新的工厂，并填充默认参数
+     */
+    @JvmStatic
+    fun replaceSlot(unit: PlacedObject, slotIndex: Int, factoryId: String) {
+        if (slotIndex < 0 || slotIndex >= unit.factorySlots) return
+        while (unit.factorySlotConfigs.size <= slotIndex) {
+            unit.factorySlotConfigs.add(FactorySlotConfig())
+        }
+        val config = FactorySlotConfig()
+        config.factoryId = factoryId
+        // 填充默认参数
+        templates[factoryId]?.defaultParams?.forEach { (key, value) ->
+            config.params.put(key, value)
+        }
+        unit.factorySlotConfigs[slotIndex] = config
+        // 清空冷却条
+        while (unit.factoryCooldownBars.size <= slotIndex) {
+            unit.factoryCooldownBars.add(null)
+        }
+        unit.factoryCooldownBars[slotIndex] = null
+    }
+
+    /**
+     * ★ 清空指定槽位的工厂
+     */
+    @JvmStatic
+    fun clearSlot(unit: PlacedObject, slotIndex: Int) {
+        if (slotIndex < 0 || slotIndex >= unit.factorySlots) return
+        replaceSlot(unit, slotIndex, "")
     }
 }

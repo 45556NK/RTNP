@@ -12,6 +12,7 @@ import com.rtnp.demo.ui.panel.data.PanelComponent
 import com.rtnp.demo.ui.panel.data.SpeedBarComponent
 import com.rtnp.demo.ui.panel.data.StorageBarComponent
 import com.rtnp.demo.ui.panel.data.BuildProgressComponent
+import com.rtnp.demo.ui.panel.data.DynamicProgressBarComponent
 import com.rtnp.demo.ui.panel.data.BuildReserveComponent
 import com.rtnp.demo.ui.panel.tool.DeployButtonTool
 import com.rtnp.demo.ui.panel.tool.BuildReserveRenderTool
@@ -80,6 +81,10 @@ object ComponentRenderTool {
                 is BuildReserveComponent -> drawProgressWithScale(canvas, comp, panelRect) {
                     BuildReserveRenderTool.draw(canvas, comp, panelRect)
                 }
+                is DynamicProgressBarComponent -> drawProgressWithScale(canvas, comp, panelRect) {
+                    DynamicProgressBarRenderTool.draw(canvas, comp, panelRect)
+                }
+                is PanelComponent.Placeholder -> { /* 不渲染 */ }
                 is PanelComponent.Spacer -> {}
                 else -> {}
             }
@@ -87,6 +92,9 @@ object ComponentRenderTool {
 
         for (comp in components) {
             TooltipRenderTool.draw(canvas, comp, panelRect)
+            if (comp is DynamicProgressBarComponent) {
+                DetailPanelRenderTool.draw(canvas, comp, panelRect)
+            }
         }
     }
 
@@ -98,6 +106,7 @@ object ComponentRenderTool {
             is StorageBarComponent -> "ST_${comp.layoutY}"
             is BuildProgressComponent -> "B_${comp.layoutY}"
             is BuildReserveComponent -> "BR_${comp.layoutY}"
+            is DynamicProgressBarComponent -> "D_${comp.slotKey}"  // ★ 唯一 key
             else -> return
         }
 
@@ -108,6 +117,7 @@ object ComponentRenderTool {
             is StorageBarComponent -> comp.isPressed
             is BuildProgressComponent -> comp.isPressed
             is BuildReserveComponent -> comp.isPressed
+            is DynamicProgressBarComponent -> comp.isPressed
             else -> false
         }
 

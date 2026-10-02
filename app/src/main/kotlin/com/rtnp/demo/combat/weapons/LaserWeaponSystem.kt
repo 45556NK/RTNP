@@ -1,4 +1,3 @@
-// app/src/main/kotlin/com/rtnp/demo/combat/weapons/LaserWeaponSystem.kt
 package com.rtnp.demo.combat.weapons
 
 import android.graphics.Color
@@ -48,7 +47,9 @@ class LaserWeaponSystem : WeaponSystem {
             }
         }
         val dps = ws.minDamage + (ws.maxDamage - ws.minDamage) * (ws.laserCharge / ws.chargeTime).coerceIn(0f, 1f)
-        host.applyDamage(target, dps * fixedDt * WeaponConstants.cooldownMultiplier)
+        // ★ 传入 attacker 和 ws
+        host.applyDamage(target, attacker, ws, com.rtnp.demo.combat.DamageType.LASER,
+            dps * fixedDt * WeaponConstants.cooldownMultiplier)
     }
 
     override fun getRenderData(attacker: PlacedObject, ws: PlacedObject.WeaponSlot): WeaponRenderData? {

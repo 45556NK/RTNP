@@ -1,4 +1,3 @@
-// app/src/main/kotlin/com/rtnp/demo/ui/panel/tool/PanelLayoutTool.kt
 package com.rtnp.demo.ui.panel.tool
 
 import android.graphics.Paint
@@ -10,6 +9,7 @@ import com.rtnp.demo.ui.panel.data.LifetimeBarComponent
 import com.rtnp.demo.ui.panel.data.StorageBarComponent
 import com.rtnp.demo.ui.panel.data.BuildProgressComponent
 import com.rtnp.demo.ui.panel.data.BuildReserveComponent
+import com.rtnp.demo.ui.panel.data.DynamicProgressBarComponent
 
 object PanelLayoutTool {
 
@@ -29,12 +29,19 @@ object PanelLayoutTool {
                 is PanelComponent.Spacer -> comp.height
                 is BuildProgressComponent -> BuildProgressLayoutTool.calculateHeight()
                 is BuildReserveComponent -> BuildReserveLayoutTool.calculateHeight()
+                is DynamicProgressBarComponent -> SpeedBarLayoutTool.calculateHeight()
+                is PanelComponent.Placeholder -> 0f  // ★ 不占高度
                 else -> 0f
             }
         }
 
         var currentY = PADDING_TOP
         for (comp in components) {
+            // ★ 占位符不占高度，且不产生间距
+            if (comp is PanelComponent.Placeholder) {
+                comp.layoutY = currentY
+                continue
+            }
             comp.layoutY = currentY
             currentY += comp.computedHeight + COMPONENT_SPACING
         }

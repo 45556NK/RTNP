@@ -51,6 +51,8 @@ class DeathManager(private val host: UnitSystem) {
         if (obj == host.selectedUnit) {
             com.rtnp.demo.ui.panel.RightPanel.unlock()
         }
+        // ★ 安全销毁立场
+        com.rtnp.demo.shield.ShieldManager.destroyAllShields(obj)
 
         // 释放停泊在此单位的船只（不再依赖 port）
         for (s in ArrayList(host.placedObjects)) {

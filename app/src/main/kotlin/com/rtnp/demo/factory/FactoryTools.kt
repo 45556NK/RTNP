@@ -1,13 +1,14 @@
 package com.rtnp.demo.factory
 
+import android.content.Context
 import com.rtnp.demo.UnitSystem
 import com.rtnp.demo.core.InventoryItem
 import com.rtnp.demo.core.PlacedObject
 import com.rtnp.demo.core.TemplateRegistry
+import com.rtnp.demo.ui.panel.tool.CooldownRenderTool
+import com.rtnp.demo.ui.panel.tool.EnergyRingRenderTool
+import com.rtnp.demo.ui.panel.tool.FactoryButtonTool
 
-/**
- * 工厂槽工具集，提供给工厂模板使用。
- */
 class FactoryTools(private val unitSystem: UnitSystem) {
 
     fun getAllUnits(): List<PlacedObject> = unitSystem.placedObjects.toList()
@@ -40,5 +41,39 @@ class FactoryTools(private val unitSystem: UnitSystem) {
         if (unit == unitSystem.selectedUnit) {
             unitSystem.deselectUnit()
         }
+    }
+
+    // ==================== 屏幕 / Context 访问 ====================
+
+    fun getContext(): Context? = unitSystem.context
+
+    fun getScreenWidth(): Int = unitSystem.screenWidth
+
+    fun getScreenHeight(): Int = unitSystem.screenHeight
+
+    // ==================== 工厂按钮进度接口 ====================
+
+    fun setCooldownBar(
+        host: PlacedObject, slotIndex: Int, progress: Float, color: Int,
+        direction: CooldownRenderTool.Direction = CooldownRenderTool.Direction.BOTTOM_UP
+    ) {
+        FactoryButtonTool.setBar(
+            host, slotIndex, FactoryButtonTool.BarType.COOLDOWN,
+            progress, color, cooldownDirection = direction
+        )
+    }
+
+    fun setProgressBar(
+        host: PlacedObject, slotIndex: Int, progress: Float, color: Int,
+        direction: EnergyRingRenderTool.Direction = EnergyRingRenderTool.Direction.CLOCKWISE
+    ) {
+        FactoryButtonTool.setBar(
+            host, slotIndex, FactoryButtonTool.BarType.PROGRESS,
+            progress, color, progressDirection = direction
+        )
+    }
+
+    fun clearButtonState(host: PlacedObject, slotIndex: Int) {
+        FactoryButtonTool.clear(host, slotIndex)
     }
 }

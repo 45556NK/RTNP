@@ -1,4 +1,3 @@
-// app/src/main/kotlin/com/rtnp/demo/ui/panel/tool/ButtonBindingTool.kt
 package com.rtnp.demo.ui.panel.tool
 
 import android.content.Context
@@ -18,6 +17,23 @@ object ButtonBindingTool {
         return (0 until unit.strategySlots).mapIndexed { index, _ ->
             val strategyId = unit.strategyIds.getOrElse(index) { "" }
             StrategyButtonTool.create(strategyId, index, vw, context, unit)
+        }
+    }
+
+    fun createFactoryButtons(unit: PlacedObject, vw: Int, context: Context): List<InteractiveButtonComponent> {
+        if (unit.factorySlots <= 0) return emptyList()
+        return (0 until unit.factorySlots).map { index ->
+            FactoryButtonTool.create(index, vw, context, unit)
+        }
+    }
+
+    /**
+     * ★ 新增：创建立场按钮。
+     */
+    fun createShieldButtons(unit: PlacedObject, vw: Int, context: Context): List<InteractiveButtonComponent> {
+        if (unit.shieldSlots <= 0) return emptyList()
+        return (0 until unit.shieldSlots).map { index ->
+            ShieldButtonTool.create(index, vw, context, unit)
         }
     }
 

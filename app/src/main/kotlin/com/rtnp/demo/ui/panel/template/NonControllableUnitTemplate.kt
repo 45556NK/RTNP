@@ -23,6 +23,8 @@ object NonControllableUnitTemplate {
         
         StorageBarTool.create(unit)?.let { components.add(it) }
         
+        components.add(PanelComponent.Placeholder("shield_slot"))
+        
         components.add(PanelComponent.Spacer(60f))  // 20像素间隔
 
         components.add(SystemButtonTool.create(vw, context, RightPanel.getUnitSystem() ?: return emptyList()))
@@ -33,9 +35,18 @@ object NonControllableUnitTemplate {
 
         ButtonBindingTool.addToComponents(components,
             ButtonBindingTool.createWeaponButtons(unit, vw, context))
+            
+        ButtonBindingTool.addToComponents(components,
+            ButtonBindingTool.createShieldButtons(unit, vw, context))
+            
+        ButtonBindingTool.addToComponents(components,
+            ButtonBindingTool.createShieldButtons(unit, vw, context))
 
         ButtonBindingTool.addToComponents(components,
             ButtonBindingTool.createStrategyButtons(unit, vw, context))
+            
+        ButtonBindingTool.addToComponents(components,
+            ButtonBindingTool.createFactoryButtons(unit, vw, context))
 
         return components
     }

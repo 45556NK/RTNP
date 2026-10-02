@@ -1,4 +1,3 @@
-// app/src/main/kotlin/com/rtnp/demo/combat/weapons/PulseWeaponSystem.kt
 package com.rtnp.demo.combat.weapons
 
 import android.graphics.Color
@@ -41,7 +40,7 @@ class PulseWeaponSystem : WeaponSystem {
 
         // ★ 能量消耗阶段：逆时针减少
         if (pw.energyBar.progress < 1f && pw.energyBar.progress > 0f && !pw.cooldownBar.isFinished) {
-            EnergyRingTool.startFromSlot(ws, Color.argb(200, 100, 200, 255), false)  // 逆时针
+            EnergyRingTool.startFromSlot(ws, Color.argb(200, 100, 200, 255), false)
         }
         // ★ 冷却阶段：能量耗尽，走冷却
         else if (pw.energyBar.progress <= 0f && !pw.cooldownBar.isFinished) {
@@ -50,7 +49,7 @@ class PulseWeaponSystem : WeaponSystem {
         }
         // ★ 能量恢复阶段：顺时针增加
         else if (pw.energyBar.progress > 0f && pw.cooldownBar.isFinished) {
-            EnergyRingTool.startFromSlot(ws, Color.argb(200, 100, 200, 255), true)  // 顺时针
+            EnergyRingTool.startFromSlot(ws, Color.argb(200, 100, 200, 255), true)
         }
         else {
             EnergyRingTool.stop(ws)
@@ -76,11 +75,11 @@ class PulseWeaponSystem : WeaponSystem {
         val s = shader ?: return
         s.use()
         s.setMat4("uMVPMatrix", cameraMatrix.getMVPMatrix())
-        for (attacker in units.toList()) {                        // ★ 已安全
-            for (ws in attacker.weaponSlots.toList()) {           // ★ 加 .toList()
+        for (attacker in units.toList()) {
+            for (ws in attacker.weaponSlots.toList()) {
                 if (ws.type != "pulse" || !ws.active) continue
                 val pw = ws.pulseWeapon ?: continue
-                for (target in pw.lockedTargets.toList()) {       // ★ 加 .toList()
+                for (target in pw.lockedTargets.toList()) {
                     drawLine(s, attacker.worldX, attacker.worldY, target.worldX, target.worldY, 0xFF64C8FF.toInt())
                 }
             }

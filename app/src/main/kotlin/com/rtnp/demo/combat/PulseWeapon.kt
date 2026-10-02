@@ -88,7 +88,7 @@ class PulseWeapon(
             for (t in lockedTargets.toList()) {
                 val hp = host.healthMap[t] ?: continue
                 if (hp <= 0) { lockedTargets.remove(t); continue }
-                host.applyDamage(t, dmg)
+                host.applyDamage(t, attacker, slot, com.rtnp.demo.combat.DamageType.PULSE, dmg)
             }
             energyBar.reduceProgress(dt / ed * WeaponConstants.cooldownMultiplier)
             noTargetStartTime = 0L

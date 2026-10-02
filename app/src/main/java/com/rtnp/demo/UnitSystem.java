@@ -12,6 +12,8 @@ import com.rtnp.demo.logic.SpatialGrid;
 import com.rtnp.demo.logic.DeathManager;
 import com.rtnp.demo.core.TemplateRegistry;
 import com.rtnp.demo.trait.TraitManager;
+import com.rtnp.demo.combat.Bullet;
+import com.rtnp.demo.combat.CombatManager;
 import android.content.Context;
 import android.graphics.*;
 import android.view.MotionEvent;
@@ -159,6 +161,7 @@ public class UnitSystem {
         AiManager.INSTANCE.init(context, this);
         missileSystem.setHost(this);
         com.rtnp.demo.factory.FactoryManager.INSTANCE.init(context, this);
+        com.rtnp.demo.shield.ShieldManager.INSTANCE.init(context, this);
     }
 
     public UnitSystem() { this(null); }
@@ -227,7 +230,19 @@ public class UnitSystem {
         return c;
     }
 
-    public void applyDamage(PlacedObject t, float dmg) { combatManager.applyDamage(t, dmg); }
+    public void applyDamage(PlacedObject t, float dmg) {
+        combatManager.applyDamage(t, null, null, com.rtnp.demo.combat.DamageType.ENVIRONMENT, dmg);
+    }
+
+    public void applyDamage(PlacedObject t, PlacedObject attacker,
+                            PlacedObject.WeaponSlot weapon,
+                            com.rtnp.demo.combat.DamageType damageType, float dmg) {
+        combatManager.applyDamage(t, attacker, weapon, damageType, dmg);
+    }
+
+    public void applyDamageDirect(PlacedObject t, float dmg) {
+        combatManager.applyDamageDirect(t, dmg);
+    }
     public void toggleMiningEnabled() { /* 工厂系统已移除，无操作 */ }
 
     public PhysicsWorld getPhysicsWorld() { return physicsWorld; }

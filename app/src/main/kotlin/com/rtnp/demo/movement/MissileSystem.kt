@@ -256,9 +256,19 @@ class MissileSystem {
     }
 
     private fun directExplode(m: PlacedObject) {
-        val h = host ?: return; cleanupRangeDisplays(m)
-        ExplosionDamageTool.applyExplosion(h, m.worldX, m.worldY, m.explosionRange.toFloat(), m.missileDamage.toFloat(), m.faction)
-        effects.add(ExplosionEffect(m.worldX, m.worldY, m.explosionRange, m.effectSize)); removeFromWorld(m)
+        val h = host ?: return
+        cleanupRangeDisplays(m)
+        ExplosionDamageTool.applyExplosion(
+            h,
+            m.worldX, m.worldY,
+            m.explosionRange.toFloat(),
+            m.missileDamage.toFloat(),
+            m.faction,
+            null,
+            m.missileLauncher      // ★ 新增
+        )
+        effects.add(ExplosionEffect(m.worldX, m.worldY, m.explosionRange, m.effectSize))
+        removeFromWorld(m)
         val eff = m.explosionEffectId.ifEmpty { "explosion" }
         GpuEffectSystem.spawn(eff, m.worldX, m.worldY, m)
     }

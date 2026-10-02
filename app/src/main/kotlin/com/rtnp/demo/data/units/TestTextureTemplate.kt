@@ -4,6 +4,7 @@ import android.graphics.Color
 import com.rtnp.demo.core.InventoryItem
 import com.rtnp.demo.core.PlacedObject
 import com.rtnp.demo.core.UnitTemplateProvider
+import com.rtnp.demo.shield.ShieldSlotConfig
 
 class TestTextureTemplate : UnitTemplateProvider {
     override fun provide(): InventoryItem {
@@ -54,6 +55,12 @@ class TestTextureTemplate : UnitTemplateProvider {
             effectOffsetY = 0f
             effectAngleOffset = 270f
             effectTriggerSpeed = 20f
+
+            // ★ 立场槽：初代立场
+            shieldSlots = 2
+            shieldSlotConfigs.add(ShieldSlotConfig().apply {
+                shieldId = "basic_shield"
+            })
         }
     }
 }

@@ -86,13 +86,30 @@ public class UnitManager {
         obj.aiIds = new ArrayList<>(item.aiIds);
         obj.playerControllable = item.playerControllable;
 
-        // ★ 工厂槽初始化（使用组合体模式）
+        // ★ 工厂槽初始化（固定槽位数量）
+        obj.factorySlots = item.factorySlots;
         obj.factorySlotConfigs = new ArrayList<>();
-        for (FactorySlotConfig config : item.factorySlotConfigs) {
-            obj.factorySlotConfigs.add(config.copy());
+        for (int i = 0; i < obj.factorySlots; i++) {
+            if (i < item.factorySlotConfigs.size()) {
+                obj.factorySlotConfigs.add(item.factorySlotConfigs.get(i).copy());
+            } else {
+                obj.factorySlotConfigs.add(new FactorySlotConfig());  // 空槽
+            }
         }
         obj.factoryCooldownBars = new ArrayList<>();
-        for (int i = 0; i < obj.factorySlotConfigs.size(); i++) {
+        
+        // ★ 立场槽初始化
+        obj.shieldSlots = item.shieldSlots;
+        obj.shieldSlotConfigs = new ArrayList<>();
+        for (int i = 0; i < obj.shieldSlots; i++) {
+            if (i < item.shieldSlotConfigs.size() && item.shieldSlotConfigs.get(i) != null) {
+                obj.shieldSlotConfigs.add(item.shieldSlotConfigs.get(i).copy());
+            } else {
+                obj.shieldSlotConfigs.add(new com.rtnp.demo.shield.ShieldSlotConfig());
+            }
+        }
+        obj.allowShieldChange = item.allowShieldChange;
+        for (int i = 0; i < obj.factorySlots; i++) {
             obj.factoryCooldownBars.add(null);
         }
         obj.allowFactoryChange = item.allowFactoryChange;
@@ -277,13 +294,18 @@ public class UnitManager {
         s.textureDisplayHeight = template.textureDisplayHeight;
         s.aiIds = new ArrayList<>(template.aiIds);
 
-        // ★ 工厂槽初始化（使用组合体模式）
+        // ★ 工厂槽初始化（固定槽位数量）
+        s.factorySlots = template.factorySlots;
         s.factorySlotConfigs = new ArrayList<>();
-        for (FactorySlotConfig config : template.factorySlotConfigs) {
-            s.factorySlotConfigs.add(config.copy());
+        for (int i = 0; i < s.factorySlots; i++) {
+            if (i < template.factorySlotConfigs.size()) {
+                s.factorySlotConfigs.add(template.factorySlotConfigs.get(i).copy());
+            } else {
+                s.factorySlotConfigs.add(new FactorySlotConfig());  // 空槽
+            }
         }
         s.factoryCooldownBars = new ArrayList<>();
-        for (int i = 0; i < s.factorySlotConfigs.size(); i++) {
+        for (int i = 0; i < s.factorySlots; i++) {
             s.factoryCooldownBars.add(null);
         }
         s.allowFactoryChange = template.allowFactoryChange;

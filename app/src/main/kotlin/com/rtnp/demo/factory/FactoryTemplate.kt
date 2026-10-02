@@ -24,12 +24,27 @@ abstract class FactoryTemplate {
 
     /**
      * 每帧更新
+     * @param host 宿主单位
+     * @param slotIndex 当前工厂槽索引（供设置进度条使用）
+     * @param deltaTime 帧间隔
+     * @param tools 工具集
      * @param slotData 当前槽位的独立参数容器
      */
-    abstract fun onUpdate(host: PlacedObject, deltaTime: Float, tools: FactoryTools, slotData: FactorySlotData)
+    abstract fun onUpdate(
+        host: PlacedObject,
+        slotIndex: Int,
+        deltaTime: Float,
+        tools: FactoryTools,
+        slotData: FactorySlotData
+    )
 
     /**
      * 玩家点击工厂槽时触发
      */
-    open fun onClicked(host: PlacedObject, tools: FactoryTools, slotIndex: Int, slotData: FactorySlotData) {}
+    open fun onClicked(
+        host: PlacedObject,
+        slotIndex: Int,
+        tools: FactoryTools,
+        slotData: FactorySlotData
+    ) {}
 }

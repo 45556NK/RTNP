@@ -94,6 +94,12 @@ class InventoryItem {
     @JvmField var suppressionEffectId: String? = null
 
     // ★ 工厂槽配置（使用组合体模式）
+    @JvmField var factorySlots: Int = 0
     @JvmField var factorySlotConfigs: MutableList<FactorySlotConfig> = mutableListOf()
     @JvmField var allowFactoryChange: Boolean = true
+    
+    // ★ 立场槽配置
+    @JvmField var shieldSlots: Int = 0
+    @JvmField var shieldSlotConfigs: MutableList<com.rtnp.demo.shield.ShieldSlotConfig> = mutableListOf()
+    @JvmField var allowShieldChange: Boolean = true
 }

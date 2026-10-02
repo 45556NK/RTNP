@@ -15,7 +15,7 @@ class B1CarrierRocketTemplate : UnitTemplateProvider {
             height = 20
             health = 1000
             faction = 2
-            category = "运载火箭"
+            category = "火箭"
             color = Color.GREEN
             description = "重型运载火箭，部署了特殊装备"
             allowWeaponChange = false

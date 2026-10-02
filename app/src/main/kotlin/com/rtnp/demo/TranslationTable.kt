@@ -87,5 +87,22 @@ object TranslationTable {
         table["attr_explosion_range"] = "爆炸范围"
         table["attr_range"] = "射程"
         table["attr_fire_rate"] = "射速"
+        table["hex_selector_confirm"] = "确定？"
+        
+        // 船坞
+        table["shipyard_quantity"] = "生产数量"
+        table["shipyard_resource"] = "资源"
+        table["shipyard_btn_minus"] = "减少"
+        table["shipyard_btn_plus"] = "增加"
+        table["shipyard_btn_back"] = "返回"
+        table["shipyard_warn_no_resource"] = "仓储资源不足"
+        table["shipyard_warn_dock_full"] = "停泊位已满"
+        
+        // 立场
+        table["shield_cooling"] = "立场冷却中"
+        table["shield_hp"] = "维持值"
+        table["shield_duration"] = "效果时长"
+        table["shield_cooldown"] = "冷却"
+        table["empty_shield_slot"] = "空立场"
     }
 }

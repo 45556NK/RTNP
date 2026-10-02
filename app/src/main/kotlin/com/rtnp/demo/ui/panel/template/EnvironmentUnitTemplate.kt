@@ -18,6 +18,8 @@ object EnvironmentUnitTemplate {
         components.add(HealthBarTool.create(unit))
         StorageBarTool.create(unit)?.let { components.add(it) }
         components.add(PanelComponent.Spacer(60f))  // 20像素间隔
+        ButtonBindingTool.addToComponents(components,
+            ButtonBindingTool.createShieldButtons(unit, vw, context))
         components.add(ExitButtonTool.create(vw, context) {
             RightPanel.unlock()
         })

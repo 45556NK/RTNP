@@ -12,6 +12,7 @@ import com.rtnp.demo.ui.panel.data.SpeedBarComponent
 import com.rtnp.demo.ui.panel.data.StorageBarComponent
 import com.rtnp.demo.ui.panel.data.BuildProgressComponent
 import com.rtnp.demo.ui.panel.data.BuildReserveComponent
+import com.rtnp.demo.ui.panel.data.DynamicProgressBarComponent
 
 object TooltipRenderTool {
 
@@ -55,6 +56,7 @@ object TooltipRenderTool {
                 if (comp.tooltipText == null) null
                 else Tuple5(comp.isPressed, comp.tooltipText, comp.tooltipBitmap, comp.tooltipWidth, comp.tooltipHeight, comp.tooltipLines)
             }
+            is DynamicProgressBarComponent -> null
             else -> null
         }
         if (tuple == null || !tuple.isPressed) return

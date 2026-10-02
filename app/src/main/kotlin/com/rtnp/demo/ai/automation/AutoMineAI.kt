@@ -11,7 +11,7 @@ class AutoMineAI : AiTemplate {
 
     override val id = "auto_mine"
     override val displayName = "自动采矿"
-    override val description = "放置0.8秒后，在本星区内寻找矿物最多的环境单位停泊采矿，同容量选最近"
+    override val description = "放置0.8秒后，在本星区内寻找最近的金属矿物停泊采矿"
     override val enabledByDefault = true
 
     override fun onUpdate(host: PlacedObject, deltaTime: Float, tools: AiTools) {
@@ -29,12 +29,12 @@ class AutoMineAI : AiTemplate {
         // 已经移动中就不再重复下指令
         if (host.isMoving) return
 
-        val target = findRichestMineralInTile(host, tools) ?: return
+        val target = findNearestMetalMineralInTile(host, tools) ?: return
 
         tools.dockTo(host, target)
     }
 
-    private fun findRichestMineralInTile(host: PlacedObject, tools: AiTools): PlacedObject? {
+    private fun findNearestMetalMineralInTile(host: PlacedObject, tools: AiTools): PlacedObject? {
         var tileId = HexGridManager.getTileIdForUnit(host)
         if (tileId == null) {
             HexGridManager.registerUnit(host)
@@ -45,13 +45,13 @@ class AutoMineAI : AiTemplate {
         val unitsInTile = HexGridManager.getUnitsInTile(tileId)
 
         var best: PlacedObject? = null
-        var bestCount = 0
         var bestDist = Float.MAX_VALUE
 
         for (unit in unitsInTile) {
             if (unit == host) continue
             if (unit.type != "environment") continue
-            if (unit.storedItemName.isNullOrEmpty() || unit.storedItemCount <= 0) continue
+            if (unit.storedItemName != "金属") continue
+            if (unit.storedItemCount <= 0) continue
             if (unit.maxMiners > 0) {
                 val minerCount = unitsInTile.count { it.isMining && it.miningTarget == unit }
                 if (minerCount >= unit.maxMiners) continue
@@ -61,10 +61,7 @@ class AutoMineAI : AiTemplate {
             val dy = host.worldY - unit.worldY
             val dist = sqrt(dx * dx + dy * dy)
 
-            val count = unit.storedItemCount
-
-            if (count > bestCount || (count == bestCount && dist < bestDist)) {
-                bestCount = count
+            if (dist < bestDist) {
                 bestDist = dist
                 best = unit
             }

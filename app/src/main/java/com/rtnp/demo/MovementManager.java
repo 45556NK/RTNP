@@ -118,6 +118,12 @@ public class MovementManager {
                     FactoryManager.updateFactories(obj, UnitSystem.FIXED_DT);
                 }
             }
+            for (PlacedObject obj : reusableList) {
+                if (!host.placedObjects.contains(obj)) continue;
+                if (obj.shieldSlotConfigs != null && !obj.shieldSlotConfigs.isEmpty()) {
+                    com.rtnp.demo.shield.ShieldManager.INSTANCE.updateShields(obj, UnitSystem.FIXED_DT);
+                }
+            }
 
             // ★ 最后更新策略（此时死亡单位列表已就绪）
             for (PlacedObject obj : reusableList) {
