@@ -22,6 +22,10 @@ import com.rtnp.demo.camera.CameraController
 import com.rtnp.demo.ui.panel.RightPanel
 import com.rtnp.demo.ui.action.ActionFlowController
 import com.rtnp.demo.ui.panel.tool.DeployButtonTool
+import com.rtnp.demo.ui.bottombar.BottomBarV2
+import com.rtnp.demo.ui.bottombar.BottomBarGlobal
+import com.rtnp.demo.ui.bottombar.tools.BottomBarItemPanelProxy
+import com.rtnp.demo.ui.bottombar.tools.BottomBarUnitInfoPanelProxy
 
 class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
 
@@ -45,6 +49,9 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
     var scaleDetector: ScaleGestureDetector? = null
         private set
     var toastTool: ToastTool = ToastTool()
+    // 字段
+    var bottomBarV2: BottomBarV2? = null
+        private set
 
     private var paint = Paint()
     private var itemTouchActive = false
@@ -200,12 +207,22 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
             val screenY = (wy - cameraY) * zoom + height / 2f
             Pair(screenX, screenY)
         }
+        bottomBarV2 = BottomBarV2(context)
+        BottomBarGlobal.onPauseRequested = {
+            isPaused = true
+            /*BottomBarItemPanelProxy.hide()
+            BottomBarUnitInfoPanelProxy.hide()*/
+            unitSystem?.deselectUnit()
+            unitSystem?.setShowDetails(false)
+            invalidate()
+        }
         RightPanel.init(context, unitSystem!!)
         ActionFlowController.init(unitSystem!!)
         RightPanel.unlock()
         DeployButtonTool.resetAll()
         InfoBoxTool.init(context)
         FloatingWindowTool.init(context)
+        
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -224,6 +241,8 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
 
         FloatingWindowTool.onSizeChanged(w, h)
         SystemPanelEntry.onSizeChanged(w, h)
+        
+        bottomBarV2?.setScreenSize(w, h)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -251,6 +270,10 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
 
         gameRenderer?.updateUnits(unitSystem?.placedObjects ?: emptyList())
         gameRenderer?.unitSystem = unitSystem
+        // 新底部栏（常态 UI，位于弹层之下）
+        if (RenderControl.showBottomBar && RenderControl.useNewBottomBar) {
+            bottomBarV2?.draw(canvas)
+        }
 
         ActionPlatform.draw(canvas, width)
         StrategyToolLayer.drawButtons(canvas)

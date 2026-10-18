@@ -62,7 +62,7 @@ object BuildManager {
             if (!costItem.isNullOrEmpty() && costAmount > 0) {
                 for (unit in us.placedObjects) {
                     if (!unit.isDocked || unit.dockedAt != inv) continue
-                    if (unit.uniqueId in process.submittedBuilders) continue
+                    //if (unit.uniqueId in process.submittedBuilders) continue
                     val materials = unit.collectedItems ?: continue
                     val has = materials[costItem] ?: 0
                     if (has <= 0) continue

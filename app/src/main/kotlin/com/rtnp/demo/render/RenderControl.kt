@@ -34,6 +34,10 @@ object RenderControl {
     var touchDisabledMap: Boolean = false
     var touchDisabledMultiSelectButton: Boolean = false
     var hideStopButtonForAntimatter: Boolean = false
+    
+    
+    // ==================== 新旧系统切换 ====================
+    var useNewBottomBar: Boolean = true
 
     // ==================== 便捷方法 ====================
     fun hideAllUI() {

@@ -49,10 +49,10 @@ class RepairFactoryTemplate : FactoryTemplate() {
             tools.getAllUnits().firstOrNull { it.uniqueId == entry.unitId }
         }
 
-        // 2. 找到第一个受伤单位
+        // 2. 找到第一个同阵营的受伤单位
         val target = dockedUnits.firstOrNull { unit ->
-            val hp = tools.getHealth(unit)
-            hp < unit.originalHealth
+            unit.faction == host.faction &&
+            tools.getHealth(unit) < unit.originalHealth
         }
 
         // 3. 没有目标：清空冷却条、重置计时，直接返回

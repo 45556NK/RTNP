@@ -18,6 +18,8 @@ import com.rtnp.demo.ui.action.ActionPlatform
 import com.rtnp.demo.ui.panel.RightPanel
 import com.rtnp.demo.strategy.TileSelectorTool
 import com.rtnp.demo.ui.action.ActionFlowController
+import com.rtnp.demo.ui.bottombar.tools.BottomBarItemPanelProxy
+import com.rtnp.demo.ui.tools.ItemGridPanelTool
 
 class GameTouchHandler(private val gameView: GameView) {
 
@@ -172,8 +174,18 @@ class GameTouchHandler(private val gameView: GameView) {
             }
             return true
         }
-
-        if (!RenderControl.touchDisabledBottomBar) {
+        
+        if (RenderControl.useNewBottomBar) {
+            if (!RenderControl.touchDisabledBottomBar) {
+                val nb = gameView.bottomBarV2
+                if (nb != null && action == MotionEvent.ACTION_DOWN && nb.contains(x, y)) {
+                    touchFocus = FOCUS_BOTTOM_BAR
+                    nb.onTouchEvent(event)
+                    gameView.invalidate()
+                    return true
+                }
+            }
+        } else if (!RenderControl.touchDisabledBottomBar) {
             val bottomBarRect = itemSystem.bottomBarRect
             if (bottomBarRect != null && bottomBarRect.contains(x.toInt(), y.toInt())) {
                 if (action == MotionEvent.ACTION_DOWN && itemSystem.onTouchEvent(event)) {
@@ -275,7 +287,18 @@ class GameTouchHandler(private val gameView: GameView) {
                 gameView.invalidate(); true
             }
             FOCUS_FLEET_PANEL -> gameView.itemSystem?.onTouchEvent(event)?.also { if (it) gameView.invalidate() } ?: false
-            FOCUS_BOTTOM_BAR -> gameView.itemSystem?.onTouchEvent(event)?.also { if (it) gameView.invalidate() } ?: false
+            FOCUS_BOTTOM_BAR -> {
+                if (RenderControl.useNewBottomBar) {
+                    gameView.bottomBarV2?.onTouchEvent(event)
+                    if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                        touchFocus = null
+                    }
+                    gameView.invalidate()
+                    true
+                } else {
+                    gameView.itemSystem?.onTouchEvent(event)?.also { if (it) gameView.invalidate() } ?: false
+                }
+            }
             FOCUS_INVENTORY -> gameView.itemSystem?.onTouchEvent(event)?.also { if (it) gameView.invalidate() } ?: false
             FOCUS_MULTI_SELECT_BUTTONS -> true
             FOCUS_TOAST -> {
@@ -407,6 +430,22 @@ class GameTouchHandler(private val gameView: GameView) {
                 }
             }
             gameView.postInvalidateOnAnimation(); return
+        }
+        // 物品/建筑放置（面板打开且有选中时）
+        if (BottomBarItemPanelProxy.isShowing()) {
+            val selected = BottomBarItemPanelProxy.getSelectedItems().firstOrNull()
+            if (selected != null) {
+                if (HexGridManager.isPointInHexGrid(worldX, worldY)) {
+                    when (BottomBarItemPanelProxy.getMode()) {
+                        ItemGridPanelTool.PanelMode.ITEM ->
+                            unitSystem.addObjectFromItem(selected, worldX, worldY)
+                        ItemGridPanelTool.PanelMode.BUILD ->
+                            BuildManager.addPreview(worldX, worldY, selected)
+                    }
+                }
+                gameView.postInvalidateOnAnimation()
+                return
+            }
         }
 
         unitSystem.directSelectTap(worldX, worldY)

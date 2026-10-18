@@ -3,6 +3,7 @@ package com.rtnp.demo.ai.automation
 import com.rtnp.demo.ai.AiTemplate
 import com.rtnp.demo.ai.AiTools
 import com.rtnp.demo.ai.tools.AiMovementTools
+import com.rtnp.demo.ai.tools.AiReactionTimeTool
 import com.rtnp.demo.core.PlacedObject
 import com.rtnp.demo.logic.DockingSystem
 import com.rtnp.demo.logic.HexGridManager
@@ -15,42 +16,104 @@ class ZoneDefense : AiTemplate {
     override val description = "在本区块内搜索并攻击敌方单位，不跨区块行动"
     override val enabledByDefault = false
 
-    /** 死咬目标，直到离开区块或死亡 */
-    private var currentTarget: PlacedObject? = null
+    companion object {
+        private const val MIN_REACTION = 3f
+        private const val MAX_REACTION = 7f
+        private const val PATH_SAMPLE_STEPS = 100
+    }
+
+    /**
+     * 每个单位的独立状态。
+     */
+    private data class State(
+        var homeTileId: Int = -1,
+        var currentTarget: PlacedObject? = null,
+        var decisionMade: Boolean = false
+    )
+
+    private val states = mutableMapOf<Long, State>()
 
     override fun onUpdate(host: PlacedObject, deltaTime: Float, tools: AiTools) {
+        val state = states.getOrPut(host.uniqueId) { State() }
         val hostTileId = HexGridManager.getTileIdForUnit(host) ?: run {
-            currentTarget = null
+            state.currentTarget = null
+            state.decisionMade = false
+            AiReactionTimeTool.reset(host)
             return
         }
 
-        // 获取本区块内的敌方单位（非中立、非我方）
+        // 首次记录驻地
+        if (state.homeTileId == -1) {
+            state.homeTileId = hostTileId
+        }
+
+        // ==================== 脱离驻地 → 归队 ====================
+        if (hostTileId != state.homeTileId) {
+            if (!state.decisionMade) {
+                if (!AiReactionTimeTool.tick(host, deltaTime, MIN_REACTION, MAX_REACTION)) return
+                state.decisionMade = true
+            }
+            val homeTarget = findHomeDockTarget(host, state.homeTileId)
+            if (homeTarget != null) {
+                AiMovementTools.dockToRandomSlot(host, homeTarget)
+            }
+            return
+        }
+
+        // 回到驻地 → 重置决策状态
+        if (state.decisionMade) {
+            AiReactionTimeTool.reset(host)
+            state.decisionMade = false
+        }
+
+        // ==================== 检测区块内敌人 ====================
         val unitsInTile = HexGridManager.getUnitsInTile(hostTileId)
         val enemies = unitsInTile.filter {
             it.faction != 0 && it.faction != host.faction && it.health > 0
         }
 
-        // 激活立场和武器
+        if (enemies.isEmpty()) {
+            state.currentTarget = null
+            return
+        }
+
+        // 有敌人：激活立场和武器
         activateShields(host)
         activateWeapons(host)
 
-        if (enemies.isEmpty()) {
-            currentTarget = null
-            return
-        }
-
-        // 宿主已经在攻击：跳过（防止频繁更新指令）
+        // 宿主已在攻击：跳过（防止频繁更新指令）
         if (isHostAttacking(host)) return
 
-        // 校验当前目标，或寻找新目标
-        val target = validateOrFindTarget(host, hostTileId, enemies, tools)
-        if (target == null) {
-            currentTarget = null
-            return
+        // ==================== 反应时间 & 目标锁定 ====================
+        val curValid = isValidTarget(state.currentTarget, hostTileId, tools)
+        if (!curValid) {
+            state.currentTarget = null
+            state.decisionMade = false
         }
-        currentTarget = target
 
-        // ★ 导弹特殊处理：逃往本区块内离它最远的可停泊单位
+        if (!state.decisionMade) {
+            // 等待反应时间
+            if (!AiReactionTimeTool.tick(host, deltaTime, MIN_REACTION, MAX_REACTION)) return
+            // 反应结束：选择目标
+            state.currentTarget = pickNearestEnemy(host, enemies, tools)
+            state.decisionMade = true
+        }
+
+        val target = state.currentTarget ?: return
+
+        // ==================== 分支决策 ====================
+        executeDecision(host, hostTileId, target, tools)
+    }
+
+    // ==================== 分支决策 ====================
+
+    private fun executeDecision(
+        host: PlacedObject,
+        hostTileId: Int,
+        target: PlacedObject,
+        tools: AiTools
+    ) {
+        // 导弹特殊处理：逃往本区块内离它最远的可停泊单位
         if ("missile" == target.category) {
             val farthest = findFarthestDockableInTile(host, hostTileId, target)
             if (farthest != null) {
@@ -59,99 +122,58 @@ class ZoneDefense : AiTemplate {
             return
         }
 
-        // 分支 4：对方本身可停泊
+        // 分支 4：对方可停泊
         if (DockingSystem.getSlotCount(target) > 0) {
             AiMovementTools.dockToRandomSlot(host, target)
             return
         }
 
-        // 分支 1：对方正在移动，且目的地是有效的可停泊单位
-        val dockTarget = target.dockTarget
-        if (target.isMoving && dockTarget != null && tools.getAllUnits().contains(dockTarget)
-            && DockingSystem.getSlotCount(dockTarget) > 0) {
-            AiMovementTools.dockToRandomSlot(host, dockTarget)
-            return
-        }
-
-        // 分支 2：对方静止 → 停泊到离它最近的可停泊单位
-        if (!target.isMoving) {
-            val nearest = findNearestDockableInTile(host, hostTileId, target.worldX, target.worldY)
+        // 分支 1：对方正在移动
+        if (target.isMoving) {
+            // 计算目标路线在宿主区块内的最远点
+            val furthest = findFurthestPointInTile(
+                target.worldX, target.worldY,
+                target.targetX, target.targetY,
+                hostTileId
+            )
+            if (furthest == null) return
+            // 在区块内找离这个点最近的可停泊单位
+            val nearest = findNearestDockableInTile(
+                host, hostTileId, furthest.first, furthest.second
+            )
             if (nearest != null) {
                 AiMovementTools.dockToRandomSlot(host, nearest)
             }
             return
         }
 
-        // 分支 3：对方正在移动，目的地没有可停泊单位 → 去目的地最近的可停泊单位
-        val nearestToDest = findNearestDockableInTile(host, hostTileId, target.targetX, target.targetY)
-        if (nearestToDest != null) {
-            AiMovementTools.dockToRandomSlot(host, nearestToDest)
+        // 分支 2：对方静止 → 停泊到离它最近的可停泊单位
+        val nearest = findNearestDockableInTile(
+            host, hostTileId, target.worldX, target.worldY
+        )
+        if (nearest != null) {
+            AiMovementTools.dockToRandomSlot(host, nearest)
         }
     }
 
-    // ==================== 立场 / 武器 ====================
+    // ==================== 目标校验 / 选择 ====================
 
-    /**
-     * 激活所有需要激活的立场（跳过永久激活的）。
-     */
-    private fun activateShields(host: PlacedObject) {
-        for (i in host.shieldSlotConfigs.indices) {
-            val config = host.shieldSlotConfigs[i]
-            if (config.shieldId.isEmpty()) continue
-            val template = ShieldManager.getTemplate(config.shieldId) ?: continue
-            if (!template.requiresActivation) continue
-            if (config.params.isActive) continue
-            if (config.params.cooldownRemaining > 0f) continue
-            ShieldManager.activateShield(host, i)
-        }
-    }
-
-    /**
-     * 打开所有武器槽。
-     */
-    private fun activateWeapons(host: PlacedObject) {
-        var changed = false
-        for (ws in host.weaponSlots) {
-            if (!ws.active) {
-                ws.active = true
-                changed = true
-            }
-        }
-        if (changed) host.syncCurrentWeapon()
-    }
-
-    /**
-     * 宿主是否已有武器槽在攻击。
-     */
-    private fun isHostAttacking(host: PlacedObject): Boolean {
-        for (ws in host.weaponSlots) {
-            if (ws.lockedTarget != null) return true
-        }
-        return false
-    }
-
-    // ==================== 目标锁定 ====================
-
-    /**
-     * 校验当前目标是否仍有效；无效则寻找最近的敌人。
-     */
-    private fun validateOrFindTarget(
-        host: PlacedObject,
+    private fun isValidTarget(
+        target: PlacedObject?,
         hostTileId: Int,
+        tools: AiTools
+    ): Boolean {
+        if (target == null) return false
+        val tileId = HexGridManager.getTileIdForUnit(target) ?: return false
+        if (tileId != hostTileId) return false
+        return tools.getHealth(target) > 0f
+    }
+
+    private fun pickNearestEnemy(
+        host: PlacedObject,
         enemies: List<PlacedObject>,
         tools: AiTools
     ): PlacedObject? {
-        // 校验当前目标
-        val cur = currentTarget
-        if (cur != null) {
-            val curTile = HexGridManager.getTileIdForUnit(cur)
-            if (curTile != null && curTile == hostTileId && tools.getHealth(cur) > 0f) {
-                return cur
-            }
-            currentTarget = null
-        }
-
-        // 寻找最近的新目标
         var best: PlacedObject? = null
         var bestDist = Float.MAX_VALUE
         for (e in enemies) {
@@ -164,11 +186,33 @@ class ZoneDefense : AiTemplate {
         return best
     }
 
-    // ==================== 可停泊目标查找 ====================
+    // ==================== 路线 / 区域查询 ====================
 
     /**
-     * 本区块内离 (targetX, targetY) 最近的可停泊单位。
+     * 沿线段 (x1,y1)→(x2,y2) 采样，返回最后一个仍在指定区块内的点。
      */
+    private fun findFurthestPointInTile(
+        x1: Float, y1: Float,
+        x2: Float, y2: Float,
+        tileId: Int
+    ): Pair<Float, Float>? {
+        var lastInTile: Pair<Float, Float>? = null
+        var entered = false
+        for (i in 0..PATH_SAMPLE_STEPS) {
+            val t = i.toFloat() / PATH_SAMPLE_STEPS
+            val x = x1 + (x2 - x1) * t
+            val y = y1 + (y2 - y1) * t
+            val tile = HexGridManager.getTileAt(x, y)
+            if (tile?.id == tileId) {
+                lastInTile = x to y
+                entered = true
+            } else if (entered) {
+                break
+            }
+        }
+        return lastInTile
+    }
+
     private fun findNearestDockableInTile(
         host: PlacedObject,
         tileId: Int,
@@ -193,9 +237,6 @@ class ZoneDefense : AiTemplate {
         return best
     }
 
-    /**
-     * 本区块内离 from 最远的可停泊单位。
-     */
     private fun findFarthestDockableInTile(
         host: PlacedObject,
         tileId: Int,
@@ -217,5 +258,61 @@ class ZoneDefense : AiTemplate {
             }
         }
         return best
+    }
+
+    /**
+     * 归队：优先本区块同阵营基地，其次任意可停泊单位。
+     */
+    private fun findHomeDockTarget(host: PlacedObject, homeTileId: Int): PlacedObject? {
+        val unitsInTile = HexGridManager.getUnitsInTile(homeTileId)
+        // 优先同阵营基地
+        for (u in unitsInTile) {
+            if (u === host) continue
+            if (u.health <= 0) continue
+            if (u.faction != host.faction) continue
+            if (u.type != "base") continue
+            if (DockingSystem.getSlotCount(u) <= 0) continue
+            return u
+        }
+        // 任意可停泊单位
+        for (u in unitsInTile) {
+            if (u === host) continue
+            if (u.health <= 0) continue
+            if (DockingSystem.getSlotCount(u) <= 0) continue
+            return u
+        }
+        return null
+    }
+
+    // ==================== 立场 / 武器 ====================
+
+    private fun activateShields(host: PlacedObject) {
+        for (i in host.shieldSlotConfigs.indices) {
+            val config = host.shieldSlotConfigs[i]
+            if (config.shieldId.isEmpty()) continue
+            val template = ShieldManager.getTemplate(config.shieldId) ?: continue
+            if (!template.requiresActivation) continue
+            if (config.params.isActive) continue
+            if (config.params.cooldownRemaining > 0f) continue
+            ShieldManager.activateShield(host, i)
+        }
+    }
+
+    private fun activateWeapons(host: PlacedObject) {
+        var changed = false
+        for (ws in host.weaponSlots) {
+            if (!ws.active) {
+                ws.active = true
+                changed = true
+            }
+        }
+        if (changed) host.syncCurrentWeapon()
+    }
+
+    private fun isHostAttacking(host: PlacedObject): Boolean {
+        for (ws in host.weaponSlots) {
+            if (ws.lockedTarget != null) return true
+        }
+        return false
     }
 }

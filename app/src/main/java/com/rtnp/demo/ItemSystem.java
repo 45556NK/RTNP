@@ -248,6 +248,8 @@ public class ItemSystem {
 		return isFleetOpen() && fleetPanelRect != null && fleetPanelRect.contains((int)x, (int)y);
 	}
 	public Rect getBottomBarRect() {
+		// ★ 新底部栏启用时，旧底部栏不再暴露矩形（GameTouchHandler 自动跳过旧分支）
+		if (RenderControl.INSTANCE.getUseNewBottomBar()) return null;
 		if (bottomBar != null) return bottomBar.getRect();
 		return null;
 	}
@@ -331,6 +333,8 @@ public class ItemSystem {
 
         // 底部栏触摸
         if (action == MotionEvent.ACTION_DOWN && bottomBar != null) {
+            // ★ 新底部栏启用时，旧底部栏不再响应触摸
+            if (RenderControl.INSTANCE.getUseNewBottomBar()) return false;
             if (RenderControl.INSTANCE.getTouchDisabledBottomBar()) return false;
             if (bottomBar.contains(event.getX(), event.getY())) {
                 // 暂停按钮
@@ -530,7 +534,8 @@ public class ItemSystem {
 		}
 
         // 底部栏（盖在最下层）
-        if (bottomBar != null) {
+        // ★ 新底部栏启用时，旧底部栏不再渲染
+        if (bottomBar != null && !RenderControl.INSTANCE.getUseNewBottomBar()) {
             bottomBar.setInventoryOpen(inventoryPanel != null && inventoryPanel.isOpen());
             bottomBar.setBuildOpen(buildPanel != null && buildPanel.isOpen());
             bottomBar.setFleetOpen(isFleetOpen);

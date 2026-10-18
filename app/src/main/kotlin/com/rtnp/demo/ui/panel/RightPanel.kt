@@ -8,6 +8,7 @@ import com.rtnp.demo.core.PlacedObject
 import com.rtnp.demo.ui.panel.data.InteractiveButtonComponent
 import com.rtnp.demo.ui.panel.data.PanelComponent
 import com.rtnp.demo.logger.Logger
+import com.rtnp.demo.render.RenderControl
 import com.rtnp.demo.ui.panel.tool.*
 
 object RightPanel {
@@ -43,6 +44,8 @@ object RightPanel {
         if (wasHidden) {
             PanelAnimTool.start()
         }
+        RenderControl.showBottomBar = false
+        RenderControl.touchDisabledBottomBar = true
     }
 
     fun lockMultiUnits(units: Set<PlacedObject>) {
@@ -108,6 +111,8 @@ object RightPanel {
         PanelLogic.clear()
         PanelAnimTool.stop()
         unitSystem?.deselectUnit()
+        RenderControl.showBottomBar = true
+        RenderControl.touchDisabledBottomBar = false
     }
 
     fun onTouch(x: Float, y: Float, action: Int): Boolean {

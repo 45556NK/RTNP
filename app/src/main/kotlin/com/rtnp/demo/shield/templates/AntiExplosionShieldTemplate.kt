@@ -19,6 +19,7 @@ class AntiExplosionShieldTemplate : ShieldTemplate() {
     override val id = "anti_explosion_shield"
     override val displayName = "防爆立场"
     override val description = "能够吸收舰船受到的所有爆炸伤害"
+    override val iconPath: String = "images/icons/anti_explosion_shield_icon.png"
 
     override val requiresActivation: Boolean = true
 
