@@ -105,6 +105,8 @@ class RangeLimitRenderSystem {
         val center = state.getCenterIfActive() ?: return
         val radius = state.radius
 
+        val blendEnabledBefore = GLES30.glIsEnabled(GLES30.GL_BLEND)
+
         val mvp = cameraMatrix.getMVPMatrix()
         val outerRing = radius + 5f
         val innerRing = radius - 5f
@@ -204,7 +206,11 @@ class RangeLimitRenderSystem {
 
         // ===== 恢复状态 =====
         GLES30.glDisable(GLES30.GL_STENCIL_TEST)
-        GLES30.glDisable(GLES30.GL_BLEND)
+        if (blendEnabledBefore) {
+            GLES30.glEnable(GLES30.GL_BLEND)
+        } else {
+            GLES30.glDisable(GLES30.GL_BLEND)
+        }
         GLES30.glDepthMask(true)
     }
 }

@@ -31,7 +31,13 @@ object HexSelectorTool {
         val backgroundColor: Int,
         val infoText: String,
         val hexText: String,
-        val iconPath: String? = null
+        val iconPath: String? = null,
+        /** 直接提供 Bitmap（优先于 iconPath，用于运行时贴图单位） */
+        val iconBitmap: Bitmap? = null,
+        /** 未选中时的边框色 */
+        val unselectedBorderColor: Int = Color.WHITE,
+        /** 选中时的边框色 */
+        val selectedBorderColor: Int = Color.YELLOW
     )
 
     interface SelectorListener {
@@ -387,7 +393,11 @@ object HexSelectorTool {
         private fun updateSelectedAppearance() {
             for (i in hexButtons.indices) {
                 val btn = hexButtons[i]
-                btn.strokeColor = if (i == selectedIndex) Color.YELLOW else Color.WHITE
+                val item = hexItems.getOrNull(i)
+                btn.strokeColor = if (i == selectedIndex)
+                    (item?.selectedBorderColor ?: Color.YELLOW)
+                else
+                    (item?.unselectedBorderColor ?: Color.WHITE)
                 btn.buildPaths()
             }
         }
@@ -432,15 +442,17 @@ object HexSelectorTool {
 
                 val btn = HexButton(coord[0], coord[1], dynamicHexSize, item.hexText)
                 btn.fillColor = item.backgroundColor
-                btn.strokeColor = if (i == selectedIndex) Color.YELLOW else Color.WHITE
-                btn.pressedStrokeColor = Color.YELLOW
+                btn.strokeColor = if (i == selectedIndex) item.selectedBorderColor else item.unselectedBorderColor
+                btn.pressedStrokeColor = item.selectedBorderColor
                 btn.textColor = Color.BLACK
                 btn.fontSize = fontSize
                 btn.buildPaths()
                 hexButtons.add(btn)
 
                 val data = HexButtonData(item.backgroundColor, item.infoText, item.hexText, item.iconPath)
-                if (item.iconPath != null) {
+                if (item.iconBitmap != null) {
+                    data.bitmap = item.iconBitmap
+                } else if (item.iconPath != null) {
                     val context = FloatingWindowTool.getContext()
                     if (context != null) {
                         data.bitmap = ImageManager.getInstance(context).getBitmap(item.iconPath)

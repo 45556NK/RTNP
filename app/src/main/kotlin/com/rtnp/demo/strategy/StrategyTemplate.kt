@@ -29,6 +29,14 @@ abstract class StrategyTemplate {
         if (blacklistTypes.isEmpty()) return true
         return !blacklistTypes.contains(unit.type) && !blacklistTypes.contains(unit.category)
     }
+    
+    /**
+ * 使用前条件检查。
+ * 返回 false 时：不会执行 onClicked，也不会进入冷却。
+ * 必须无副作用（只读状态，不改数据）。
+ * 默认返回 true（不做检查）。
+    */
+    open fun canUse(host: PlacedObject, tools: StrategyTools, slotIndex: Int): Boolean = true
 
     abstract fun onUpdate(host: PlacedObject, deltaTime: Float, tools: StrategyTools)
 

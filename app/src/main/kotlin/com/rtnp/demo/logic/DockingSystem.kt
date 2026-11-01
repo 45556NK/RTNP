@@ -150,16 +150,19 @@ object DockingSystem {
     }
 
     fun cleanDeadFromLists(allUnits: List<PlacedObject>) {
-        val aliveIds = allUnits.map { it.uniqueId }.toSet()
+        // ★ 一次构建 id → 单位映射
+        val idToUnit = HashMap<Long, PlacedObject>(allUnits.size)
+        for (u in allUnits) idToUnit[u.uniqueId] = u
 
         for (unit in allUnits) {
             if (getSlotCount(unit) <= 0) continue
 
+            // ★ 内联 isUnitCancelledOrStopped，用 map O(1) 查找
             unit.dockingList.removeAll { entry ->
-                entry.unitId !in aliveIds || isUnitCancelledOrStopped(entry.unitId, allUnits)
+                val u = idToUnit[entry.unitId] ?: return@removeAll true  // 已死
+                !u.actionDock || (u.isStopping && !u.isMoving)
             }
-
-            unit.dockedList.removeAll { it.unitId !in aliveIds }
+            unit.dockedList.removeAll { it.unitId !in idToUnit }
         }
     }
 

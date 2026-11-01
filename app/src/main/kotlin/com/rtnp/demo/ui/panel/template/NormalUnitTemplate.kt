@@ -33,6 +33,7 @@ object NormalUnitTemplate {
         StorageBarTool.create(unit)?.let { components.add(it) }
         
         components.add(PanelComponent.Placeholder("shield_slot"))
+        components.add(PanelComponent.Placeholder("strategy_slot"))
 
         components.add(PanelComponent.Spacer(60f))
 

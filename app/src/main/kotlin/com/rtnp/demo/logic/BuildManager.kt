@@ -46,11 +46,17 @@ object BuildManager {
 
     fun updateProcesses(deltaTime: Float) {
         val us = unitSystem ?: return
+        if (buildProcesses.isEmpty()) return
+
+        // ★ 一次构建 id → 单位映射，避免每个 process 遍历全量
+        val idToUnit = HashMap<Long, PlacedObject>(us.placedObjects.size)
+        for (u in us.placedObjects) idToUnit[u.uniqueId] = u
+
         val iterator = buildProcesses.iterator()
         while (iterator.hasNext()) {
             val process = iterator.next()
             val inv = process.invisibleUnit ?: continue
-            if (!us.placedObjects.contains(inv)) {
+            if (!idToUnit.containsKey(inv.uniqueId)) {
                 iterator.remove()
                 continue
             }
@@ -59,10 +65,10 @@ object BuildManager {
             val costItem = item.costItem
             val costAmount = item.costAmount
 
+            // ★ 资源贡献：直接遍历 inv.dockedList（O(k)，k 一般 1~3）
             if (!costItem.isNullOrEmpty() && costAmount > 0) {
-                for (unit in us.placedObjects) {
-                    if (!unit.isDocked || unit.dockedAt != inv) continue
-                    //if (unit.uniqueId in process.submittedBuilders) continue
+                for (entry in inv.dockedList) {
+                    val unit = idToUnit[entry.unitId] ?: continue
                     val materials = unit.collectedItems ?: continue
                     val has = materials[costItem] ?: 0
                     if (has <= 0) continue
@@ -82,12 +88,12 @@ object BuildManager {
             }
             val maxProgress = materialRatio * item.buildAmount
 
+            // ★ 建造速度：同样遍历 inv.dockedList
             if (process.progress < maxProgress) {
                 var totalBuildSpeed = 0f
-                for (unit in us.placedObjects) {
-                    if (unit.isDocked && unit.dockedAt == inv && unit.buildSpeed > 0f) {
-                        totalBuildSpeed += unit.buildSpeed
-                    }
+                for (entry in inv.dockedList) {
+                    val unit = idToUnit[entry.unitId] ?: continue
+                    if (unit.buildSpeed > 0f) totalBuildSpeed += unit.buildSpeed
                 }
                 if (totalBuildSpeed > 0f) {
                     process.progress += totalBuildSpeed * deltaTime
@@ -100,8 +106,11 @@ object BuildManager {
             syncInvisibleHealth(process, inv)
 
             if (process.progress >= item.buildAmount) {
-                val builders = us.placedObjects.filter {
-                    it.isDocked && it.dockedAt == inv && it.buildSpeed > 0f
+                // ★ 建造完成：同样用 dockedList 收集 builders，避免 filter
+                val builders = mutableListOf<PlacedObject>()
+                for (entry in inv.dockedList) {
+                    val unit = idToUnit[entry.unitId] ?: continue
+                    if (unit.buildSpeed > 0f) builders.add(unit)
                 }
                 spawnRealUnitAndTransferBuilders(process, builders)
                 iterator.remove()

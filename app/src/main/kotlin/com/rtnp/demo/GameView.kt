@@ -10,6 +10,7 @@ import com.rtnp.demo.camera.CameraAnimator
 import com.rtnp.demo.combat.WeaponConstants
 import com.rtnp.demo.image.ImageManager
 import com.rtnp.demo.logic.*
+import com.rtnp.demo.ui.test.*
 import com.rtnp.demo.render.*
 import com.rtnp.demo.strategy.StrategyManager
 import com.rtnp.demo.strategy.StrategyToolLayer
@@ -26,6 +27,8 @@ import com.rtnp.demo.ui.bottombar.BottomBarV2
 import com.rtnp.demo.ui.bottombar.BottomBarGlobal
 import com.rtnp.demo.ui.bottombar.tools.BottomBarItemPanelProxy
 import com.rtnp.demo.ui.bottombar.tools.BottomBarUnitInfoPanelProxy
+import com.rtnp.demo.ui.tools.clear.selector.CommonSliderTool
+
 
 class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
 
@@ -52,7 +55,9 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
     // 字段
     var bottomBarV2: BottomBarV2? = null
         private set
-
+        
+    var testSlider: CommonSliderTool? = null
+        private set
     private var paint = Paint()
     private var itemTouchActive = false
 
@@ -103,7 +108,7 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
             }
         }
 
-        actionConfirmButtons = ActionConfirmButtons().apply {
+        actionConfirmButtons = ActionConfirmButtons(context).apply {
             setOnActionListener(object : ActionConfirmButtons.OnActionListener {
                 override fun onCancel() {
                     BuildManager.cancelBuild()
@@ -208,6 +213,7 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
             Pair(screenX, screenY)
         }
         bottomBarV2 = BottomBarV2(context)
+        
         BottomBarGlobal.onPauseRequested = {
             isPaused = true
             /*BottomBarItemPanelProxy.hide()
@@ -243,6 +249,7 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
         SystemPanelEntry.onSizeChanged(w, h)
         
         bottomBarV2?.setScreenSize(w, h)
+        //TestFloatingWindow.show(context, h)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -295,6 +302,7 @@ class GameView(context: Context) : View(context), InventoryPanel.AnimationHost {
         WarningMessage.draw(canvas)
         FloatingWindowTool.draw(canvas)
         InfoBoxTool.draw(canvas)
+        testSlider?.draw(canvas)
         if (RenderControl.showDebugOverlay) unitSystem?.let { DebugOverlay.draw(canvas, zoom, it.objectCount, it) }
         if (RenderControl.showPauseMenu && isPaused) pauseMenu?.draw(canvas)
         if (RenderControl.showDevTools) DevTools.draw(canvas)

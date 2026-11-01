@@ -30,8 +30,9 @@ class CombatManager(private val host: UnitSystem) {
     }
 
     /**
-     * 主入口：伤害经过立场拦截。
-     */
+    * 主入口：伤害经过立场拦截。
+    * 增加 allUnits 传给 absorbDamage，让区域立场可以查找。
+    */
     fun applyDamage(
         t: PlacedObject,
         attacker: PlacedObject?,
@@ -39,7 +40,9 @@ class CombatManager(private val host: UnitSystem) {
         damageType: DamageType,
         dmg: Float
     ) {
-        val remaining = ShieldManager.absorbDamage(t, attacker, weapon, damageType, dmg)
+        val remaining = ShieldManager.absorbDamage(
+            t, host.placedObjects, attacker, weapon, damageType, dmg
+        )
         if (remaining <= 0f) return
         applyDamageDirect(t, remaining)
     }

@@ -147,9 +147,20 @@ object ShieldManager {
 
     // ==================== 伤害拦截 ====================
 
+    /**
+     * 区域立场内部引用（收集后按距离排序用）
+     */
+    private data class AreaShieldRef(
+        val owner: PlacedObject,
+        val slotIndex: Int,
+        val template: ShieldTemplate,
+        val distSq: Float
+    )
+
     @JvmStatic
     fun absorbDamage(
         host: PlacedObject,
+        allUnits: List<PlacedObject>,
         attacker: PlacedObject?,
         weapon: PlacedObject.WeaponSlot?,
         damageType: com.rtnp.demo.combat.DamageType,
@@ -158,17 +169,73 @@ object ShieldManager {
         if (damage <= 0f) return 0f
         val t = tools ?: return damage
         var remaining = damage
-        for (i in host.shieldSlotConfigs.indices) {
-            if (remaining <= 0f) break
-            val config = host.shieldSlotConfigs[i]
-            if (config.shieldId.isEmpty()) continue
-            val template = templates[config.shieldId] ?: continue
-            if (template.requiresActivation && !config.params.isActive) continue
-            val absorbed = template.onAbsorb(
-                host, i, t, attacker, weapon, damageType, remaining, config.params
-            ).coerceIn(0f, remaining)
-            remaining -= absorbed
+
+        // ============ 1. 区域立场（平分吸收） ============
+        if (remaining > 0f && allUnits.isNotEmpty()) {
+            val areaShields = mutableListOf<AreaShieldRef>()
+
+            for (other in allUnits) {
+                if (other.shieldSlotConfigs.isEmpty()) continue
+                // 阵营过滤
+                for (i in other.shieldSlotConfigs.indices) {
+                    val cfg = other.shieldSlotConfigs[i]
+                    if (cfg.shieldId.isEmpty()) continue
+                    val tpl = templates[cfg.shieldId] ?: continue
+                    if (!tpl.isAreaShield) continue
+                    if (tpl.requiresActivation && !cfg.params.isActive) continue
+                    if (tpl.protectsFriendlyOnly && other.faction != host.faction) continue
+
+                    val dx = other.worldX - host.worldX
+                    val dy = other.worldY - host.worldY
+                    val distSq = dx * dx + dy * dy
+                    if (distSq > tpl.areaRadius * tpl.areaRadius) continue
+
+                    areaShields.add(AreaShieldRef(other, i, tpl, distSq))
+                }
+            }
+
+            if (areaShields.isNotEmpty()) {
+                areaShields.sortBy { it.distSq }
+                val share = remaining / areaShields.size
+
+                var totalAbsorbed = 0f
+                for (ref in areaShields) {
+                    val stillNeed = ref.template.onAbsorbArea(
+                        protectedTarget = host,
+                        host = ref.owner,
+                        slotIndex = ref.slotIndex,
+                        tools = t,
+                        attacker = attacker,
+                        weapon = weapon,
+                        damageType = damageType,
+                        damage = share,
+                        slotData = ref.owner.shieldSlotConfigs[ref.slotIndex].params
+                    )
+                    val absorbed = (share - stillNeed.coerceIn(0f, share)).coerceAtLeast(0f)
+                    totalAbsorbed += absorbed
+                }
+                remaining -= totalAbsorbed
+                if (remaining < 0f) remaining = 0f
+            }
         }
+
+        // ============ 2. 自身普通立场 ============
+        if (remaining > 0f) {
+            for (i in host.shieldSlotConfigs.indices) {
+                if (remaining <= 0f) break
+                val config = host.shieldSlotConfigs[i]
+                if (config.shieldId.isEmpty()) continue
+                val template = templates[config.shieldId] ?: continue
+                if (template.isAreaShield) continue  // 区域立场已在上段处理
+                if (template.requiresActivation && !config.params.isActive) continue
+
+                val absorbed = template.onAbsorb(
+                    host, i, t, attacker, weapon, damageType, remaining, config.params
+                ).coerceIn(0f, remaining)
+                remaining -= absorbed
+            }
+        }
+
         return remaining
     }
 

@@ -92,6 +92,9 @@ object StrategyManager {
             if (bar != null && !bar.isFinished) return
         }
 
+        // ★ 新增：条件检查。不满足时直接返回，不点击、不冷却
+        if (!template.canUse(unit, t, slotIndex)) return
+
         if (template.cooldownMode == CooldownMode.CLICK && template.cooldown > 0f) {
             val bar = unit.getOrCreateStrategyCooldownBar(slotIndex, template.cooldown)
             bar.reset()

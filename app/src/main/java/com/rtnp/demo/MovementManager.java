@@ -112,26 +112,28 @@ public class MovementManager {
             }
             
             for (PlacedObject obj : reusableList) {
+                if (obj.factorySlotConfigs == null || obj.factorySlotConfigs.isEmpty()) continue;
                 if (!host.placedObjects.contains(obj)) continue;
-                if (obj.factorySlotConfigs != null && !obj.factorySlotConfigs.isEmpty()) {
-                    
-                    FactoryManager.updateFactories(obj, UnitSystem.FIXED_DT);
-                }
+                FactoryManager.updateFactories(obj, UnitSystem.FIXED_DT);
             }
             for (PlacedObject obj : reusableList) {
+                if (obj.shieldSlotConfigs == null || obj.shieldSlotConfigs.isEmpty()) continue;
                 if (!host.placedObjects.contains(obj)) continue;
-                if (obj.shieldSlotConfigs != null && !obj.shieldSlotConfigs.isEmpty()) {
-                    com.rtnp.demo.shield.ShieldManager.INSTANCE.updateShields(obj, UnitSystem.FIXED_DT);
-                }
+                com.rtnp.demo.shield.ShieldManager.INSTANCE.updateShields(obj, UnitSystem.FIXED_DT);
             }
 
             // ★ 最后更新策略（此时死亡单位列表已就绪）
             for (PlacedObject obj : reusableList) {
-                if (!host.placedObjects.contains(obj)) continue; // 确保单位还存活
-                if (obj.strategyIds != null && !obj.strategyIds.isEmpty()) {
+                boolean hasStrategy = obj.strategyIds != null && !obj.strategyIds.isEmpty();
+                boolean hasBars = obj.strategyCooldownBars != null && !obj.strategyCooldownBars.isEmpty();
+                if (!hasStrategy && !hasBars) continue;
+
+                if (!host.placedObjects.contains(obj)) continue;
+
+                if (hasStrategy) {
                     StrategyManager.INSTANCE.updateStrategies(obj, UnitSystem.FIXED_DT, obj.strategyIds);
                 }
-                if (obj.strategyCooldownBars != null) {
+                if (hasBars) {
                     for (int i = 0; i < obj.strategyCooldownBars.size(); i++) {
                         ProgressBarTool bar = obj.strategyCooldownBars.get(i);
                         if (bar != null && !bar.isFinished()) {

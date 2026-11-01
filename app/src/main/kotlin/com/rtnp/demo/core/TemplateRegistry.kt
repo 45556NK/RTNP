@@ -178,6 +178,9 @@ object TemplateRegistry {
                 // 可选覆盖参数
                 params.put("productionRate", 150f)
             })
+            factorySlotConfigs.add(FactorySlotConfig().apply {
+                factoryId = "load_factory"
+            })
         })
 
         addTemplate(InventoryItem().apply {

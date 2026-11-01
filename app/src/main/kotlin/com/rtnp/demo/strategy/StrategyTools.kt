@@ -7,8 +7,12 @@ import com.rtnp.demo.core.TemplateRegistry
 import com.rtnp.demo.core.GameConstants
 import com.rtnp.demo.gpu.render.tools.StrategyRenderSystem
 import com.rtnp.demo.gpu.render.tools.ProgressCircleSystem
+import com.rtnp.demo.strategy.tools.StrategyProgressBarTool
 
 class StrategyTools(private val unitSystem: UnitSystem) {
+
+    /** 策略进度条工具（右侧栏显示） */
+    val progressBar: StrategyProgressBarTool = StrategyProgressBarTool
 
     /** Toast 回调，由外部注入 */
     var showToast: ((String) -> Unit)? = null
@@ -20,7 +24,6 @@ class StrategyTools(private val unitSystem: UnitSystem) {
 
     /**
      * 每帧开始时调用，自动对比上一帧与当前帧，统计死亡单位。
-     * 不提供消费机制，下一帧覆盖上一帧数据。
      */
     fun updateFrame() {
         val currentAlive = unitSystem.placedObjects
@@ -38,9 +41,6 @@ class StrategyTools(private val unitSystem: UnitSystem) {
         previousAliveMap = currentAliveMap
     }
 
-    /**
-     * 获取本帧死亡单位列表（直接读取，无消费逻辑）
-     */
     fun getRecentlyDeadUnits(): List<PlacedObject> = recentlyDeadUnits
 
     fun getAllUnits(): List<PlacedObject> = unitSystem.placedObjects.toList()
@@ -106,9 +106,6 @@ class StrategyTools(private val unitSystem: UnitSystem) {
         return unitSystem.missileSystem?.launchMissileAtCoord(launcher, targetWorldX, targetWorldY, missileTypeName)
     }
 
-    /**
-     * 向指定世界坐标发射导弹
-     */
     fun launchMissileAtPosition(launcher: PlacedObject, targetWorldX: Float, targetWorldY: Float, missileTypeName: String) {
         val type = com.rtnp.demo.core.MissileTypeRegistry.get(missileTypeName) ?: return
 
@@ -153,45 +150,27 @@ class StrategyTools(private val unitSystem: UnitSystem) {
         unitSystem.healthMap[missile] = missile.health.toFloat()
     }
 
-    /**
-     * 手动启动策略冷却（供 MANUAL 模式的策略在 onUpdate 中调用）
-     */
     fun startCooldown(unit: PlacedObject, slotIndex: Int, cooldownTime: Float) {
         val bar = unit.getOrCreateStrategyCooldownBar(slotIndex, cooldownTime)
         bar.reset()
     }
 
-    /**
-     * 创建策略任务并返回任务ID
-     */
     fun createTask(data: MutableMap<String, Any?>): Long {
         return StrategyDataBus.createTask(data)
     }
 
-    /**
-     * 将当前单位绑定到任务
-     */
     fun bindToTask(unit: PlacedObject, taskId: Long) {
         StrategyDataBus.bindUnitToTask(unit, taskId)
     }
 
-    /**
-     * 获取当前单位的任务数据
-     */
     fun getTaskData(unit: PlacedObject): StrategyDataBus.TaskData? {
         return StrategyDataBus.getTaskData(unit)
     }
 
-    /**
-     * 更新任务数据
-     */
     fun updateTaskData(taskId: Long, key: String, value: Any?) {
         StrategyDataBus.updateTaskData(taskId, key, value)
     }
 
-    /**
-     * 完成任务
-     */
     fun completeTask(taskId: Long) {
         StrategyDataBus.completeTask(taskId)
     }

@@ -9,7 +9,7 @@ import com.rtnp.demo.strategy.templates.DeployTeleportAnchorStrategy
 import com.rtnp.demo.strategy.templates.FocusFireStrategy
 import com.rtnp.demo.strategy.templates.RegenerationEngineeringStrategy
 import com.rtnp.demo.strategy.templates.RepairBeamStrategy
-import com.rtnp.demo.strategy.templates.SpawnRepairShipStrategy
+import com.rtnp.demo.strategy.templates.*
 
 /**
  * 策略模板注册表（显式注册）
@@ -44,5 +44,7 @@ object StrategyTemplateRegistration {
         StrategyManager.register(RepairBeamStrategy())
         // 尘埃组装无人机
         StrategyManager.register(SpawnRepairShipStrategy())
+        // 空间跨越
+        StrategyManager.register(SpaceLeapStrategy())
     }
 }

@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.view.MotionEvent
+import com.rtnp.demo.ui.tools.clear.selector.CommonSliderTool
 
 object FloatingWindowTool {
 
@@ -19,6 +20,56 @@ object FloatingWindowTool {
         fun onMultiTouchStart(firstX: Float, firstY: Float, secondX: Float, secondY: Float) {}
         fun onMultiTouchMove(firstX: Float, firstY: Float, secondX: Float, secondY: Float) {}
         fun onMultiTouchEnd() {}
+    }
+
+    /**
+     * 滑块代理：把悬浮窗的"相对窗口坐标"转成"屏幕坐标"转发给 slider。
+     *
+     * 使用方式：
+     * ```
+     * val wr = FloatingWindowTool.getWindowRect()
+     * val slider = CommonSliderTool(
+     *     x = wr.left + wr.width() * 0.2f,     // 屏幕坐标，落在 windowRect 内
+     *     y = wr.centerY(),
+     *     width = wr.width() * 0.6f,
+     *     screenHeight = screenHeight,
+     *     initialProgress = 0.5f
+     * ) { p -> ... }
+     * val proxy = FloatingWindowTool.SliderProxy(slider)
+     * FloatingWindowTool.register(proxy)
+     * ```
+     */
+    class SliderProxy(
+        private val slider: CommonSliderTool
+    ) : FloatingWindowComponent {
+
+        /** 本次触摸序列是否由 slider 接管（DOWN 是否命中按钮） */
+        private var active = false
+
+        override fun draw(canvas: Canvas, windowRect: RectF) {
+            // slider 内部用屏幕坐标绘制，动画完成后 canvas 恒等变换，直接画即可
+            slider.draw(canvas)
+        }
+
+        override fun onTouchDown(x: Float, y: Float) {
+            val wr = getWindowRect()
+            active = slider.onTouchDown(wr.left + x, wr.top + y)
+        }
+
+        override fun onTouchMove(x: Float, y: Float) {
+            if (!active) return
+            val wr = getWindowRect()
+            slider.onTouchMove(wr.left + x, wr.top + y)
+        }
+
+        override fun onTouchUp(x: Float, y: Float) {
+            if (!active) return
+            val wr = getWindowRect()
+            slider.onTouchUp(wr.left + x, wr.top + y)
+            active = false
+        }
+
+        // 多指：滑块不支持，忽略
     }
 
     private var isVisible = false

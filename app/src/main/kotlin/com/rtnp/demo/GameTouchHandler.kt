@@ -20,6 +20,7 @@ import com.rtnp.demo.strategy.TileSelectorTool
 import com.rtnp.demo.ui.action.ActionFlowController
 import com.rtnp.demo.ui.bottombar.tools.BottomBarItemPanelProxy
 import com.rtnp.demo.ui.tools.ItemGridPanelTool
+import com.rtnp.demo.ui.tools.clear.selector.CommonSliderTool
 
 class GameTouchHandler(private val gameView: GameView) {
 
@@ -85,6 +86,16 @@ class GameTouchHandler(private val gameView: GameView) {
                 return gameView.pauseMenu?.onTouchEvent(event)?.also { if (it) gameView.invalidate() } ?: false
             }
             return true
+        }
+
+        // 通用滑块（测试用例）：拖动中 或 DOWN 命中按钮
+        gameView.testSlider?.let { slider ->
+            if (slider.isDragging() || action == MotionEvent.ACTION_DOWN) {
+                if (slider.onTouchEvent(event)) {
+                    gameView.invalidate()
+                    return true
+                }
+            }
         }
 
         if (ActionPlatform.onTouch(x, y, action)) {

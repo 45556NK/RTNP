@@ -173,6 +173,7 @@ class GameRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     fun updateUnits(list: List<PlacedObject>) {
-        units = list
+        // 快照：避免 GL 线程遍历时主线程修改原列表导致 ConcurrentModificationException
+        units = ArrayList(list)
     }
 }
